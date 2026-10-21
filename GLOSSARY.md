@@ -40,6 +40,10 @@ _Avoid_: Secret ability, dream ability
 The six fixed values (HP, Attack, Defense, Sp. Atk, Sp. Def, Speed) that characterise a Species.
 _Avoid_: Stats (alone), attributes
 
+**Favorite**:
+A Species the visitor has marked, remembered only in their own browser.
+_Avoid_: Starred, bookmarked, liked, saved
+
 **Pokédex**:
 The ordered collection of Species this app presents, numbered by National Pokédex number.
 _Avoid_: Dex, catalogue, list
