@@ -27,9 +27,9 @@ export function serializeFavorites(favorites: ReadonlySet<PokedexNumber>): strin
 /** Marks a Species as a Favorite, or unmarks it, returning a new set. */
 export function toggleFavorite(
   favorites: ReadonlySet<PokedexNumber>,
-  n: PokedexNumber,
+  pokedexNumber: PokedexNumber,
 ): ReadonlySet<PokedexNumber> {
   const next = new Set(favorites);
-  if (!next.delete(n)) next.add(n);
+  if (!next.delete(pokedexNumber)) next.add(pokedexNumber);
   return next;
 }

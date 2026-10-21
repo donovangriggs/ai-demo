@@ -1,3 +1,5 @@
+"use client";
+
 import Image from "next/image";
 import { useFavorites } from "@/lib/favorites-store";
 import { formatPokedexNumber } from "@/lib/pokedex/pokedex-number";

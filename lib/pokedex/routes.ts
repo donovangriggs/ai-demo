@@ -2,7 +2,7 @@ import { NO_FILTER, type PokedexFilter } from "./filter";
 import type { PokedexNumber } from "./pokedex-number";
 
 /** `?q=<search>&fav=1`, leaving out an empty search and `fav` when off. */
-export function filterSuffix({ q, favoritesOnly }: PokedexFilter): string {
+function filterSuffix({ q, favoritesOnly }: PokedexFilter): string {
   const params = new URLSearchParams();
   if (q) params.set("q", q);
   if (favoritesOnly) params.set("fav", "1");

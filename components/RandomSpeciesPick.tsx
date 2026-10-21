@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { readFavorites } from "@/lib/favorites-store";
 import { parseFilter, randomPick, visibleSpecies } from "@/lib/pokedex/filter";
 import { speciesHref } from "@/lib/pokedex/routes";
@@ -19,9 +19,13 @@ const SPLIT_LAYOUT = "(min-width: 48rem)";
  */
 export function RandomSpeciesPick({ species }: { species: SpeciesSummary[] }) {
   const router = useRouter();
+  // StrictMode runs the effect twice, which would replace `/` twice with
+  // different picks: pick once per mount.
+  const picked = useRef(false);
 
   useEffect(() => {
-    if (!window.matchMedia(SPLIT_LAYOUT).matches) return;
+    if (picked.current || !window.matchMedia(SPLIT_LAYOUT).matches) return;
+    picked.current = true;
     const filter = parseFilter(new URL(window.location.href).searchParams);
     // Read once rather than with `useFavorites`, whose hydration render sees no
     // Favorites and would pick again when they arrive.

@@ -6,7 +6,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useFavorites } from "@/lib/favorites-store";
 import { NO_FILTER, parseFilter, visibleSpecies, type PokedexFilter } from "@/lib/pokedex/filter";
 import { parsePokedexNumber, POKEDEX_SIZE } from "@/lib/pokedex/pokedex-number";
-import { filterSuffix, isSpeciesPath, pokedexHref, speciesHref } from "@/lib/pokedex/routes";
+import { isSpeciesPath, pokedexHref, speciesHref } from "@/lib/pokedex/routes";
 import type { SpeciesSummary } from "@/lib/pokedex/types";
 import { SpeciesRow } from "./SpeciesRow";
 
@@ -14,12 +14,12 @@ type Props = { species: SpeciesSummary[] };
 
 /**
  * The Pokédex sidebar with instant search and a "Favorites only" toggle. The
- * Pokédex filter lives in `?q=` and `?fav=`, written with `history.replaceState` so typing never round-trips
- * to the server, and the sidebar follows the URL whenever it changes some other
- * way (back and forward, or a link to another route). Row links carry the
- * filter, so a reload or a shared detail URL restores it. Uses
- * `useSearchParams`, so render it inside `<Suspense>` with
- * `<PokedexSidebarFallback>` as the fallback.
+ * Pokédex filter lives in `?q=` and `?fav=`, written with
+ * `history.replaceState` so typing never round-trips to the server, and the
+ * sidebar follows the URL whenever it changes some other way (back and
+ * forward, or a link to another route). Row links carry the filter, so a
+ * reload or a shared detail URL restores it. Uses `useSearchParams`, so render
+ * it inside `<Suspense>` with `<PokedexSidebarFallback>` as the fallback.
  *
  * Below `md` the split stacks: on detail routes the sidebar hides itself and
  * renders a back link (carrying the filter) above the detail pane instead.
@@ -50,7 +50,10 @@ export function PokedexSidebar({ species }: Props) {
   function changeFilter(next: PokedexFilter) {
     setFilter(next);
     const url = new URL(window.location.href);
-    url.search = filterSuffix(next);
+    if (next.q) url.searchParams.set("q", next.q);
+    else url.searchParams.delete("q");
+    if (next.favoritesOnly) url.searchParams.set("fav", "1");
+    else url.searchParams.delete("fav");
     window.history.replaceState(null, "", url);
   }
 

@@ -1,15 +1,16 @@
 import { describe, expect, it } from "vitest";
+import { NO_FILTER } from "@/lib/pokedex/filter";
 import { parsePokedexNumber, type PokedexNumber } from "@/lib/pokedex/pokedex-number";
 import { isSpeciesPath, pokedexHref, speciesHref } from "@/lib/pokedex/routes";
 
 const six = parsePokedexNumber("6") as PokedexNumber;
 
 /** A search-only filter, with Favorites only off. */
-const search = (q: string) => ({ q, favoritesOnly: false });
+const search = (q: string) => ({ ...NO_FILTER, q });
 
 describe("pokedexHref", () => {
   it("links to the bare Pokédex when there is no search", () => {
-    expect(pokedexHref(search(""))).toBe("/");
+    expect(pokedexHref(NO_FILTER)).toBe("/");
   });
 
   it("keeps the search text in ?q=", () => {
@@ -22,7 +23,7 @@ describe("pokedexHref", () => {
   });
 
   it("keeps Favorites only in ?fav=1", () => {
-    expect(pokedexHref({ q: "", favoritesOnly: true })).toBe("/?fav=1");
+    expect(pokedexHref({ ...NO_FILTER, favoritesOnly: true })).toBe("/?fav=1");
   });
 
   it("writes ?q= before fav=1, encoding the search", () => {
@@ -36,7 +37,7 @@ describe("speciesHref", () => {
   });
 
   it("drops an empty search", () => {
-    expect(speciesHref(six, search(""))).toBe("/pokemon/6");
+    expect(speciesHref(six, NO_FILTER)).toBe("/pokemon/6");
   });
 
   it("carries the search text in ?q= so a reload restores the filter", () => {
@@ -45,7 +46,7 @@ describe("speciesHref", () => {
   });
 
   it("carries Favorites only in fav=1, after ?q=", () => {
-    expect(speciesHref(six, { q: "", favoritesOnly: true })).toBe("/pokemon/6?fav=1");
+    expect(speciesHref(six, { ...NO_FILTER, favoritesOnly: true })).toBe("/pokemon/6?fav=1");
     expect(speciesHref(six, { q: "#6", favoritesOnly: true })).toBe("/pokemon/6?q=%236&fav=1");
   });
 });

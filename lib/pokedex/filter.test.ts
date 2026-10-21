@@ -1,22 +1,22 @@
 import { describe, expect, it } from "vitest";
 import { parseFavorites } from "@/lib/pokedex/favorites";
-import { parseFilter, randomPick, visibleSpecies } from "@/lib/pokedex/filter";
+import { NO_FILTER, parseFilter, randomPick, visibleSpecies } from "@/lib/pokedex/filter";
 import { POKEDEX } from "@/lib/pokedex/pokedex.fixture";
 
 describe("parseFilter", () => {
   it("is the empty filter with no params", () => {
-    expect(parseFilter(new URLSearchParams())).toEqual({ q: "", favoritesOnly: false });
+    expect(parseFilter(new URLSearchParams())).toEqual(NO_FILTER);
   });
 
   it("reads the search text from ?q=", () => {
-    expect(parseFilter(new URLSearchParams("q=mr.+mime"))).toEqual({
-      q: "mr. mime",
-      favoritesOnly: false,
-    });
+    expect(parseFilter(new URLSearchParams("q=mr.+mime"))).toEqual({ ...NO_FILTER, q: "mr. mime" });
   });
 
   it("turns Favorites only on for ?fav=1", () => {
-    expect(parseFilter(new URLSearchParams("fav=1"))).toEqual({ q: "", favoritesOnly: true });
+    expect(parseFilter(new URLSearchParams("fav=1"))).toEqual({
+      ...NO_FILTER,
+      favoritesOnly: true,
+    });
   });
 
   it.each(["fav=0", "fav=true", "fav="])("treats %s as off", (params) => {
@@ -35,18 +35,18 @@ describe("visibleSpecies", () => {
   const noFavorites = parseFavorites(null);
 
   it("returns all 151 Species in Pokédex order for the empty filter", () => {
-    const visible = visibleSpecies(POKEDEX, { q: "", favoritesOnly: false }, noFavorites);
+    const visible = visibleSpecies(POKEDEX, NO_FILTER, noFavorites);
     expect(visible.map((s) => s.id)).toEqual(Array.from({ length: 151 }, (_, i) => i + 1));
   });
 
   it("keeps the Species matching the search, in Pokédex order", () => {
-    const visible = visibleSpecies(POKEDEX, { q: "char", favoritesOnly: false }, noFavorites);
+    const visible = visibleSpecies(POKEDEX, { ...NO_FILTER, q: "char" }, noFavorites);
     expect(visible.map((s) => s.displayName)).toEqual(["Charmander", "Charmeleon", "Charizard"]);
   });
 
   it("keeps only Favorites when Favorites only is on, in Pokédex order", () => {
     const favorites = parseFavorites("[150,6,25]");
-    const visible = visibleSpecies(POKEDEX, { q: "", favoritesOnly: true }, favorites);
+    const visible = visibleSpecies(POKEDEX, { ...NO_FILTER, favoritesOnly: true }, favorites);
     expect(visible.map((s) => s.displayName)).toEqual(["Charizard", "Pikachu", "Mewtwo"]);
   });
 
@@ -62,12 +62,12 @@ describe("visibleSpecies", () => {
   });
 
   it("is empty with Favorites only on and no Favorites", () => {
-    expect(visibleSpecies(POKEDEX, { q: "", favoritesOnly: true }, noFavorites)).toEqual([]);
+    expect(visibleSpecies(POKEDEX, { ...NO_FILTER, favoritesOnly: true }, noFavorites)).toEqual([]);
   });
 
   it("ignores Favorites when Favorites only is off", () => {
     const favorites = parseFavorites("[6]");
-    const visible = visibleSpecies(POKEDEX, { q: "char", favoritesOnly: false }, favorites);
+    const visible = visibleSpecies(POKEDEX, { ...NO_FILTER, q: "char" }, favorites);
     expect(visible.map((s) => s.displayName)).toEqual(["Charmander", "Charmeleon", "Charizard"]);
   });
 });
@@ -86,7 +86,7 @@ describe("randomPick", () => {
   });
 
   it("picks the Species at random × length, rounded down", () => {
-    const visible = visibleSpecies(POKEDEX, { q: "char", favoritesOnly: false }, parseFavorites(null));
+    const visible = visibleSpecies(POKEDEX, { ...NO_FILTER, q: "char" }, parseFavorites(null));
     expect(randomPick(visible, () => 0.5)?.displayName).toBe("Charmeleon");
   });
 });

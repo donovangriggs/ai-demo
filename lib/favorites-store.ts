@@ -8,9 +8,9 @@ const STORAGE_KEY = "pokedex:favorites";
 const NO_FAVORITES: ReadonlySet<PokedexNumber> = new Set();
 const listeners = new Set<() => void>();
 
-// Set once a write fails (storage blocked or full): from then on this tab
-// keeps its Favorites in memory, so the star still works for the session.
-let unsaved: string | undefined;
+// Set while writes fail (storage blocked or full): this tab keeps its
+// Favorites in memory instead, so the star still works for the session.
+let memoryFallback: string | undefined;
 
 // The last value read and its parse, so the snapshot stays referentially
 // stable until the stored string actually changes.
@@ -18,7 +18,7 @@ let snapshotRaw: string | null = null;
 let snapshot = NO_FAVORITES;
 
 function readRaw(): string | null {
-  if (unsaved !== undefined) return unsaved;
+  if (memoryFallback !== undefined) return memoryFallback;
   try {
     return localStorage.getItem(STORAGE_KEY);
   } catch {
@@ -57,12 +57,13 @@ export function useFavorites(): ReadonlySet<PokedexNumber> {
 }
 
 /** Marks a Species as a Favorite, or unmarks it, and saves the result. */
-export function toggleStoredFavorite(n: PokedexNumber): void {
-  const raw = serializeFavorites(toggleFavorite(readFavorites(), n));
+export function toggleStoredFavorite(pokedexNumber: PokedexNumber): void {
+  const raw = serializeFavorites(toggleFavorite(readFavorites(), pokedexNumber));
   try {
     localStorage.setItem(STORAGE_KEY, raw);
+    memoryFallback = undefined;
   } catch {
-    unsaved = raw;
+    memoryFallback = raw;
   }
   listeners.forEach((listener) => listener());
 }
