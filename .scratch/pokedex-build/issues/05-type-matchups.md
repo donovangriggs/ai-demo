@@ -6,14 +6,18 @@ Spec: [spec.md](../../pokedex/spec.md), §4 `getTypeChart`, §5 `type-matchups.t
 
 **Blocked by:** 04 (Species detail: header, Base Stats, Abilities).
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] `getTypeChart()` is public and returns the 18 Types with their damage-from lists, reusing the cached Type fetcher.
-- [ ] The domain module provides `TYPE_NAMES` (in PokéAPI id order), `typeMatchups(defending, chart)` and `groupTypeMatchups(matchups)`. Groups are sorted strongest first, then by Type id.
-- [ ] Tests use a hand-written minimal Type Chart fixture (fire, flying, water) and make no network calls. They cover:
+- [x] `getTypeChart()` is public and returns the 18 Types with their damage-from lists, reusing the cached Type fetcher.
+- [x] The domain module provides `TYPE_NAMES` (in PokéAPI id order), `typeMatchups(defending, chart)` and `groupTypeMatchups(matchups)`. Groups are sorted strongest first, then by Type id.
+- [x] Tests use a hand-written minimal Type Chart fixture (fire, flying, water) and make no network calls. They cover:
   - Charmander: weak to Water, Ground and Rock. Resists Bug, Steel, Fire, Grass, Ice and Fairy.
   - Charizard: Rock 4×. Grass and Bug ¼×. Ground 0×. Ice hidden.
   - Gyarados: Electric 4×. Ground 0×. Grass hidden.
   - Charizard's `weakTo` order is Rock, Water, Electric.
-- [ ] The page computes the groups. The `TypeMatchups` component is presentational and receives pre-grouped data.
-- [ ] Charizard's page shows Weak to Rock 4×, Water 2×, Electric 2×. Resists Bug ¼×, Grass ¼×, Fighting, Steel, Fire and Fairy ½×. Immune to Ground.
+- [x] The page computes the groups. The `TypeMatchups` component is presentational and receives pre-grouped data.
+- [x] Charizard's page shows Weak to Rock 4×, Water 2×, Electric 2×. Resists Bug ¼×, Grass ¼×, Fighting, Steel, Fire and Fairy ½×. Immune to Ground.
+
+## Comments
+
+- Implemented on integration branch `pokedex-build` in 326dcce. Code-review fixes across all tickets are in 9028692. On `pokedex-build`, 81 tests pass, and tsc, lint and the build (151 prerendered detail pages) are clean.

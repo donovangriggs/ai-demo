@@ -6,13 +6,17 @@ Spec: [spec.md](../../pokedex/spec.md), §2 Stack and scaffold, §3 Routes, §4 
 
 **Blocked by:** None (can start immediately).
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] The app is scaffolded with the Next.js 16.4 `create-next-app` defaults (TypeScript, Tailwind v4, App Router, Cache Components). No route segment configs are exported.
-- [ ] Vitest runs domain tests in a node environment through `npm test`, with the `@/` alias resolving.
-- [ ] Remote images from `raw.githubusercontent.com/PokeAPI/sprites/**` are allowed for `next/image`, and the data module is guarded as server-only.
-- [ ] The data module's public `getPokedex()` returns 151 Species summaries (Pokédex Number, slug, display name) in domain types. The underlying list fetch is cached (`'use cache'` + `cacheLife('max')`), throws on non-2xx responses, and returns trimmed plain objects. Pages never see raw PokéAPI shapes.
-- [ ] `displayName` handles the 4 overrides (Nidoran♀, Nidoran♂, Farfetch’d with U+2019, Mr. Mime) and otherwise title-cases each hyphen part. Tests cover the 4 overrides, `bulbasaur` and `solar-power`.
-- [ ] `POKEDEX_SIZE = 151` exists in the domain module.
-- [ ] The root layout holds only the html, body and fonts. The sidebar lives in a `(dex)` route-group layout, with the list rendered by the client `PokedexSidebar` from summaries passed in as props.
-- [ ] `npm run dev` shows all 151 rows at `/`, and `npm test` passes.
+- [x] The app is scaffolded with the Next.js 16.4 `create-next-app` defaults (TypeScript, Tailwind v4, App Router, Cache Components). No route segment configs are exported.
+- [x] Vitest runs domain tests in a node environment through `npm test`, with the `@/` alias resolving.
+- [x] Remote images from `raw.githubusercontent.com/PokeAPI/sprites/**` are allowed for `next/image`, and the data module is guarded as server-only.
+- [x] The data module's public `getPokedex()` returns 151 Species summaries (Pokédex Number, slug, display name) in domain types. The underlying list fetch is cached (`'use cache'` + `cacheLife('max')`), throws on non-2xx responses, and returns trimmed plain objects. Pages never see raw PokéAPI shapes.
+- [x] `displayName` handles the 4 overrides (Nidoran♀, Nidoran♂, Farfetch’d with U+2019, Mr. Mime) and otherwise title-cases each hyphen part. Tests cover the 4 overrides, `bulbasaur` and `solar-power`.
+- [x] `POKEDEX_SIZE = 151` exists in the domain module.
+- [x] The root layout holds only the html, body and fonts. The sidebar lives in a `(dex)` route-group layout, with the list rendered by the client `PokedexSidebar` from summaries passed in as props.
+- [x] `npm run dev` shows all 151 rows at `/`, and `npm test` passes.
+
+## Comments
+
+- Implemented on integration branch `pokedex-build` in f70a44b. Code-review fixes across all tickets are in 9028692. On `pokedex-build`, 81 tests pass, and tsc, lint and the build (151 prerendered detail pages) are clean.
