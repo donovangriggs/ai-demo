@@ -14,9 +14,9 @@ Spec: [spec.md](../spec.md), user stories 1–9 and 22–23; "Favorites codec", 
 - [x] Favorites are stored under the localStorage key `pokedex:favorites`.
 - [x] The detail header has a `<button>` with `aria-pressed` and an accessible name naming the Species (e.g. "Favorite Charizard"). The two states look clearly different. The detail page stays prerendered, and only the button is a client component.
 - [x] Sidebar rows for Favorites show a filled star, hidden from assistive tech. Rows stay single links.
-- [ ] Manual check: star #6, reload, and it is still starred. A second open tab updates without a reload. With storage blocked, nothing crashes.
+- [x] Manual check: star #6, reload, and it is still starred. A second open tab updates without a reload. With storage blocked, nothing crashes.
 - [x] `npm test`, lint, the type check and `npm run build` all pass.
 
 ## Comments
 
-Manual checks not run: the browser tool could not reach the local dev server. Star #6 and reload, the second-tab update and blocked storage still need a check by hand.
+Manual checks run against `npm run start` on the LAN IP: #6 stayed starred after a reload, a second open tab showed the row star without a reload, and with `Storage.prototype.getItem`/`setItem` throwing the star still toggled with no errors. Once storage worked again, the next toggle saved and the star followed it.
