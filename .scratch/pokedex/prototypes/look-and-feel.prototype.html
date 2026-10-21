@@ -1,0 +1,333 @@
+<!doctype html>
+<!--
+  PROTOTYPE — throwaway. Answers "Look and feel of the list and detail pages" (.scratch/pokedex/issues/04-look-and-feel.md).
+  Three structurally different variants of the Pokédex list + Species detail, switchable via ?variant=A|B|C
+  and the floating bottom bar (← / → keys too). Live PokéAPI data: 1 list call + 18 type calls up front,
+  then 1 pokemon call + 1 call per Ability when a Species is opened. Not production code.
+  Open by double-clicking, or: open .scratch/pokedex/prototypes/look-and-feel.prototype.html
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PROTOTYPE · Pokédex look and feel</title>
+<script src="https://cdn.tailwindcss.com/3.4.17"></script>
+</head>
+<body class="bg-slate-100 text-slate-900">
+<div id="root" class="min-h-screen"></div>
+
+<div id="switcher" class="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 rounded-full bg-black/90 text-white px-4 py-2 shadow-2xl ring-2 ring-fuchsia-400 font-mono text-sm">
+  <button id="prev" class="px-2 hover:text-fuchsia-300">←</button>
+  <span id="vlabel"></span>
+  <button id="next" class="px-2 hover:text-fuchsia-300">→</button>
+  <span id="vstate" class="text-white/50 text-xs border-l border-white/20 pl-3"></span>
+</div>
+
+<script>
+const TYPES = ['normal','fire','water','electric','grass','ice','fighting','poison','ground','flying','psychic','bug','rock','ghost','dragon','dark','steel','fairy'];
+const TYPE_COLOR = {normal:'#A8A77A',fire:'#EE8130',water:'#6390F0',electric:'#F7D02C',grass:'#7AC74C',ice:'#96D9D6',fighting:'#C22E28',poison:'#A33EA1',ground:'#E2BF65',flying:'#A98FF3',psychic:'#F95587',bug:'#A6B91A',rock:'#B6A136',ghost:'#735797',dragon:'#6F35FC',dark:'#705746',steel:'#B7B7CE',fairy:'#D685AD'};
+const STAT_LABEL = {hp:'HP',attack:'Attack',defense:'Defense','special-attack':'Sp. Atk','special-defense':'Sp. Def',speed:'Speed'};
+const VARIANTS = [
+  {key:'A', name:'Card grid → full detail page'},
+  {key:'B', name:'Master–detail split'},
+  {key:'C', name:'Handheld Pokédex device'},
+];
+const API = 'https://pokeapi.co/api/v2';
+const art = id => `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${id}.png`;
+const sprite = id => `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`;
+const pad = id => '#' + String(id).padStart(3, '0');
+const title = s => s.split('-').map(w => w[0].toUpperCase() + w.slice(1)).join(' ');
+
+// ---- state ----
+const params = new URLSearchParams(location.search);
+const S = {
+  variant: params.get('variant') ?? 'A',
+  q: params.get('q') ?? '',
+  id: params.get('id') ? Number(params.get('id')) : null,
+  ready: false, species: [], typesOf: {}, rel: {}, details: {},
+};
+
+function syncUrl(push) {
+  const p = new URLSearchParams();
+  p.set('variant', S.variant);
+  if (S.q) p.set('q', S.q);
+  if (S.id) p.set('id', S.id);
+  try { history[push ? 'pushState' : 'replaceState'](null, '', '?' + p); } catch { /* some browsers block this on file:// */ }
+}
+window.addEventListener('popstate', () => {
+  const p = new URLSearchParams(location.search);
+  S.variant = p.get('variant') ?? 'A'; S.q = p.get('q') ?? ''; S.id = p.get('id') ? Number(p.get('id')) : null;
+  render();
+});
+
+// ---- data ----
+async function load() {
+  const [list, ...types] = await Promise.all([
+    fetch(`${API}/pokemon-species?limit=151`).then(r => r.json()),
+    ...TYPES.map(t => fetch(`${API}/type/${t}`).then(r => r.json())),
+  ]);
+  S.species = list.results.map((s, i) => ({ id: i + 1, name: s.name }));
+  for (const t of types) {
+    S.rel[t.name] = t.damage_relations;
+    for (const p of t.pokemon) {
+      const id = Number(p.pokemon.url.split('/').at(-2));
+      if (id <= 151) (S.typesOf[id] ??= []).push([p.slot, t.name]);
+    }
+  }
+  for (const id in S.typesOf) S.typesOf[id] = S.typesOf[id].sort((a, b) => a[0] - b[0]).map(x => x[1]);
+  S.ready = true;
+  render();
+}
+
+async function detail(id) {
+  if (S.details[id]) return S.details[id];
+  S.details[id] = { loading: true };
+  const p = await fetch(`${API}/pokemon/${id}`).then(r => r.json());
+  const abilities = await Promise.all(p.abilities.map(async a => {
+    const ab = await fetch(a.ability.url).then(r => r.json());
+    const en = ab.effect_entries.find(e => e.language.name === 'en');
+    return { name: a.ability.name, hidden: a.is_hidden, short: en?.short_effect ?? '—' };
+  }));
+  S.details[id] = {
+    stats: p.stats.map(s => ({ key: s.stat.name, value: s.base_stat })),
+    abilities,
+  };
+  render();
+}
+
+// Type Matchup: multiplier each attacking Type deals to this Species, combining both of its Types.
+function matchups(types) {
+  return TYPES.map(atk => {
+    let m = 1;
+    for (const def of types) {
+      const r = S.rel[def];
+      if (r.double_damage_from.some(x => x.name === atk)) m *= 2;
+      if (r.half_damage_from.some(x => x.name === atk)) m *= 0.5;
+      if (r.no_damage_from.some(x => x.name === atk)) m *= 0;
+    }
+    return { type: atk, m };
+  });
+}
+const fmt = m => ({0:'0×',0.25:'¼×',0.5:'½×',1:'1×',2:'2×',4:'4×'})[m];
+
+function filtered() {
+  const q = S.q.trim().toLowerCase().replace(/^#/, '');
+  if (!q) return S.species;
+  if (/^\d+$/.test(q)) return S.species.filter(s => String(s.id).startsWith(String(Number(q))));
+  return S.species.filter(s => s.name.includes(q));
+}
+
+// ---- shared bits (small on purpose; layouts are per-variant) ----
+const badge = (t, cls = 'px-2 py-0.5 text-xs') =>
+  `<span class="${cls} rounded-full font-semibold text-white uppercase tracking-wide" style="background:${TYPE_COLOR[t]}">${t}</span>`;
+const searchInput = cls =>
+  `<input id="search" value="${S.q.replace(/"/g, '&quot;')}" placeholder="Search name or number…" class="${cls}" autocomplete="off">`;
+const go = id => `data-go="${id}"`;
+
+// ================= Variant A: card grid → full detail page =================
+function VariantA() {
+  if (S.id) return VariantA_Detail();
+  const list = filtered();
+  return `
+  <div class="max-w-6xl mx-auto px-4 py-8">
+    <header class="flex flex-col sm:flex-row sm:items-end gap-4 justify-between mb-6">
+      <div><h1 class="text-4xl font-black tracking-tight">Pokédex</h1>
+      <p class="text-slate-500">${list.length} of 151 Species</p></div>
+      ${searchInput('w-full sm:w-80 rounded-xl border border-slate-300 px-4 py-3 shadow-sm focus:outline-none focus:ring-2 focus:ring-red-400')}
+    </header>
+    ${list.length ? `<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+      ${list.map(s => `
+        <button ${go(s.id)} class="group bg-white rounded-2xl p-3 shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition text-left">
+          <div class="bg-slate-50 rounded-xl aspect-square flex items-center justify-center">
+            <img src="${art(s.id)}" loading="lazy" class="w-4/5 group-hover:scale-110 transition" alt=""></div>
+          <div class="mt-2 text-xs text-slate-400 font-mono">${pad(s.id)}</div>
+          <div class="font-bold">${title(s.name)}</div>
+          <div class="flex gap-1 mt-1 flex-wrap">${(S.typesOf[s.id] ?? []).map(t => badge(t, 'px-1.5 py-0.5 text-[10px]')).join('')}</div>
+        </button>`).join('')}
+    </div>` : `<p class="text-center text-slate-500 py-20">No Species match “${S.q}”.</p>`}
+  </div>`;
+}
+function VariantA_Detail() {
+  const s = S.species[S.id - 1], types = S.typesOf[S.id] ?? [], d = S.details[S.id];
+  if (!d) detail(S.id);
+  const mu = matchups(types);
+  const group = (label, f, tone) => {
+    const xs = mu.filter(f);
+    return xs.length ? `<div><div class="text-xs font-semibold uppercase text-slate-500 mb-1">${label}</div>
+      <div class="flex flex-wrap gap-1.5">${xs.map(x => `<span class="inline-flex items-center gap-1">${badge(x.type)}<span class="text-xs font-bold ${tone}">${fmt(x.m)}</span></span>`).join('')}</div></div>` : '';
+  };
+  const main = types[0];
+  return `
+  <div class="min-h-screen" style="background:linear-gradient(180deg, ${TYPE_COLOR[main]}33, transparent 420px)">
+  <div class="max-w-5xl mx-auto px-4 py-6">
+    <button ${go(0)} class="text-sm text-slate-600 hover:text-slate-900">← All Species</button>
+    <div class="grid md:grid-cols-2 gap-8 mt-4">
+      <div class="bg-white/70 rounded-3xl p-6 flex flex-col items-center">
+        <img src="${art(S.id)}" class="w-72 h-72 object-contain drop-shadow-xl" alt="">
+        <div class="text-slate-400 font-mono">${pad(S.id)}</div>
+        <h1 class="text-4xl font-black">${title(s.name)}</h1>
+        <div class="flex gap-2 mt-2">${types.map(t => badge(t, 'px-3 py-1 text-sm')).join('')}</div>
+      </div>
+      <div class="space-y-6">
+        <section class="bg-white rounded-2xl p-5 shadow-sm"><h2 class="font-bold mb-3">Base Stats</h2>
+          ${d?.stats ? d.stats.map(st => `
+            <div class="flex items-center gap-3 text-sm py-1">
+              <div class="w-16 text-slate-500">${STAT_LABEL[st.key]}</div>
+              <div class="w-10 font-mono font-bold text-right">${st.value}</div>
+              <div class="flex-1 h-2.5 bg-slate-100 rounded-full overflow-hidden"><div class="h-full rounded-full" style="width:${st.value / 2.55}%;background:${TYPE_COLOR[main]}"></div></div>
+            </div>`).join('') + `<div class="text-right text-sm text-slate-500 mt-2">Total <b class="text-slate-900">${d.stats.reduce((a, b) => a + b.value, 0)}</b></div>` : '<p class="text-slate-400">Loading…</p>'}
+        </section>
+        <section class="bg-white rounded-2xl p-5 shadow-sm space-y-3"><h2 class="font-bold">Type Matchups</h2>
+          ${group('Weak to', x => x.m > 1, 'text-red-600')}
+          ${group('Resists', x => x.m > 0 && x.m < 1, 'text-emerald-600')}
+          ${group('Immune to', x => x.m === 0, 'text-slate-600')}
+        </section>
+        <section class="bg-white rounded-2xl p-5 shadow-sm"><h2 class="font-bold mb-3">Abilities</h2>
+          ${d?.abilities ? d.abilities.map(a => `
+            <div class="py-2 border-t first:border-0 border-slate-100">
+              <div class="font-semibold">${title(a.name)} ${a.hidden ? '<span class="ml-1 text-[10px] uppercase bg-slate-800 text-white rounded px-1.5 py-0.5">Hidden</span>' : ''}</div>
+              <p class="text-sm text-slate-600">${a.short}</p></div>`).join('') : '<p class="text-slate-400">Loading…</p>'}
+        </section>
+      </div>
+    </div>
+  </div></div>`;
+}
+
+// ================= Variant B: master–detail split =================
+function VariantB() {
+  const list = filtered();
+  if (!S.id) S.id = list[0]?.id ?? 1;
+  const s = S.species[S.id - 1], types = S.typesOf[S.id] ?? [], d = S.details[S.id];
+  if (!d) detail(S.id);
+  const mu = matchups(types);
+  const cell = m => m === 1 ? 'text-slate-300' : m > 1 ? (m === 4 ? 'bg-red-600 text-white' : 'bg-red-100 text-red-700') : m === 0 ? 'bg-slate-800 text-white' : (m === 0.25 ? 'bg-emerald-600 text-white' : 'bg-emerald-100 text-emerald-700');
+  return `
+  <div class="h-screen flex bg-white text-sm">
+    <aside class="w-72 shrink-0 border-r border-slate-200 flex flex-col">
+      <div class="p-3 border-b border-slate-200">
+        <div class="font-black text-lg mb-2">Pokédex <span class="font-normal text-slate-400 text-xs">${list.length}/151</span></div>
+        ${searchInput('w-full rounded-md bg-slate-100 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400')}
+      </div>
+      <ul class="overflow-y-auto flex-1 pb-20">
+        ${list.map(x => `
+          <li><button ${go(x.id)} class="w-full flex items-center gap-2 px-3 py-1 text-left ${x.id === S.id ? 'bg-indigo-50 border-l-4 border-indigo-500' : 'border-l-4 border-transparent hover:bg-slate-50'}">
+            <img src="${sprite(x.id)}" loading="lazy" class="w-8 h-8 [image-rendering:pixelated]" alt="">
+            <span class="font-mono text-slate-400 w-10">${pad(x.id)}</span>
+            <span class="flex-1 font-medium">${title(x.name)}</span>
+            <span class="flex gap-0.5">${(S.typesOf[x.id] ?? []).map(t => `<span title="${t}" class="w-2.5 h-2.5 rounded-full" style="background:${TYPE_COLOR[t]}"></span>`).join('')}</span>
+          </button></li>`).join('') || '<li class="p-4 text-slate-400">No matches.</li>'}
+      </ul>
+    </aside>
+    <main class="flex-1 overflow-y-auto p-8 pb-24">
+      <div class="flex items-center gap-6">
+        <img src="${art(S.id)}" class="w-32 h-32 object-contain" alt="">
+        <div><div class="font-mono text-slate-400">${pad(S.id)}</div>
+          <h1 class="text-3xl font-bold">${title(s.name)}</h1>
+          <div class="flex gap-1.5 mt-2">${types.map(t => badge(t)).join('')}</div></div>
+      </div>
+      <div class="grid lg:grid-cols-2 gap-8 mt-8">
+        <section><h2 class="text-xs font-semibold uppercase text-slate-500 mb-2">Base Stats</h2>
+          <table class="w-full">${d?.stats ? d.stats.map(st => `
+            <tr class="border-b border-slate-100"><td class="py-1.5 text-slate-500">${STAT_LABEL[st.key]}</td>
+            <td class="py-1.5 font-mono text-right pr-3 w-12">${st.value}</td>
+            <td class="w-1/2"><div class="h-1 bg-indigo-500 rounded" style="width:${st.value / 2.55}%"></div></td></tr>`).join('') +
+            `<tr><td class="py-1.5 font-semibold">Total</td><td class="font-mono text-right pr-3 font-semibold">${d.stats.reduce((a, b) => a + b.value, 0)}</td><td></td></tr>` : '<tr><td class="text-slate-400">Loading…</td></tr>'}
+          </table>
+          <h2 class="text-xs font-semibold uppercase text-slate-500 mt-8 mb-2">Abilities</h2>
+          <dl>${d?.abilities ? d.abilities.map(a => `<dt class="font-semibold mt-2">${title(a.name)}${a.hidden ? ' <span class="text-xs font-normal text-slate-400">(hidden)</span>' : ''}</dt><dd class="text-slate-600">${a.short}</dd>`).join('') : '<dd class="text-slate-400">Loading…</dd>'}</dl>
+        </section>
+        <section><h2 class="text-xs font-semibold uppercase text-slate-500 mb-2">Type Matchups — damage taken</h2>
+          <div class="grid grid-cols-6 gap-1">
+            ${mu.map(x => `<div class="rounded border border-slate-100 overflow-hidden text-center">
+              <div class="text-[10px] font-bold uppercase text-white py-0.5" style="background:${TYPE_COLOR[x.type]}">${x.type.slice(0, 3)}</div>
+              <div class="py-1 font-mono font-bold ${cell(x.m)}">${fmt(x.m)}</div></div>`).join('')}
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>`;
+}
+
+// ================= Variant C: handheld Pokédex device =================
+function VariantC() {
+  if (!S.id) S.id = 1;
+  const s = S.species[S.id - 1], types = S.typesOf[S.id] ?? [], d = S.details[S.id];
+  if (!d) detail(S.id);
+  const mu = matchups(types).filter(x => x.m !== 1).sort((a, b) => b.m - a.m);
+  const matches = S.q ? filtered().slice(0, 8) : [];
+  const segs = v => Array.from({ length: 15 }, (_, i) => `<span class="w-2 h-3 ${i < Math.round(v / 17) ? 'bg-lime-900' : 'bg-lime-900/15'}"></span>`).join('');
+  return `
+  <div class="min-h-screen bg-slate-800 flex items-center justify-center p-4 pb-24">
+    <div class="w-full max-w-3xl bg-red-600 rounded-[2rem] p-5 shadow-[inset_-8px_-8px_0_rgba(0,0,0,.25)] border-4 border-red-900">
+      <div class="flex items-center gap-3 mb-4">
+        <div class="w-12 h-12 rounded-full bg-sky-400 border-4 border-white shadow-inner"></div>
+        <div class="w-3 h-3 rounded-full bg-red-300"></div><div class="w-3 h-3 rounded-full bg-yellow-300"></div><div class="w-3 h-3 rounded-full bg-green-400"></div>
+        <div class="ml-auto relative w-64">
+          ${searchInput('w-full rounded-md bg-red-900 text-red-50 placeholder-red-300 px-3 py-1.5 font-mono text-sm focus:outline-none')}
+          ${matches.length ? `<div class="absolute right-0 left-0 top-full mt-1 bg-white rounded-md shadow-xl z-10 overflow-hidden">
+            ${matches.map(m => `<button ${go(m.id)} class="w-full text-left px-3 py-1.5 font-mono text-sm hover:bg-lime-100">${pad(m.id)} ${title(m.name)}</button>`).join('')}</div>` : ''}
+        </div>
+      </div>
+      <div class="grid md:grid-cols-2 gap-4">
+        <div class="bg-slate-200 rounded-xl p-3 border-4 border-slate-300">
+          <div class="bg-lime-200 rounded-md aspect-square flex items-center justify-center relative">
+            <img src="${art(S.id)}" class="w-4/5 drop-shadow" alt="">
+            <div class="absolute top-2 left-2 font-mono text-lime-900">${pad(S.id)}</div>
+          </div>
+          <div class="flex items-center justify-between mt-3">
+            <button ${go(S.id === 1 ? 151 : S.id - 1)} class="w-10 h-10 rounded-full bg-slate-800 text-white">◀</button>
+            <div class="text-center"><div class="font-mono font-bold text-lg uppercase">${s.name}</div>
+              <div class="flex gap-1 justify-center">${types.map(t => badge(t, 'px-2 py-0.5 text-[10px]')).join('')}</div></div>
+            <button ${go(S.id === 151 ? 1 : S.id + 1)} class="w-10 h-10 rounded-full bg-slate-800 text-white">▶</button>
+          </div>
+        </div>
+        <div class="bg-lime-200 rounded-xl p-4 font-mono text-lime-900 text-xs border-4 border-slate-300 space-y-4">
+          <div><div class="font-bold mb-1">BASE STATS</div>
+            ${d?.stats ? d.stats.map(st => `<div class="flex items-center gap-2"><span class="w-14">${STAT_LABEL[st.key].toUpperCase()}</span><span class="w-8 text-right">${st.value}</span><span class="flex gap-px">${segs(st.value)}</span></div>`).join('') : 'LOADING…'}</div>
+          <div><div class="font-bold mb-1">MATCHUPS</div>
+            <div class="flex flex-wrap gap-1">${mu.map(x => `<span class="px-1 border border-lime-900/40 rounded">${x.type.slice(0, 3).toUpperCase()} ${fmt(x.m)}</span>`).join('')}</div></div>
+          <div><div class="font-bold mb-1">ABILITIES</div>
+            ${d?.abilities ? d.abilities.map(a => `<div class="mb-1">▸ ${a.name.toUpperCase()}${a.hidden ? ' [H]' : ''}<div class="opacity-70 pl-3">${a.short}</div></div>`).join('') : 'LOADING…'}</div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ---- render + switcher ----
+const COMPONENTS = { A: VariantA, B: VariantB, C: VariantC };
+function render() {
+  const v = VARIANTS.find(x => x.key === S.variant) ?? VARIANTS[0];
+  document.getElementById('vlabel').textContent = `${v.key} (${v.name})`;
+  document.getElementById('vstate').textContent = `q="${S.q}" id=${S.id ?? '–'} shown=${S.ready ? filtered().length : '…'}`;
+  const root = document.getElementById('root');
+  if (!S.ready) { root.innerHTML = '<p class="p-10 text-slate-500">Loading 151 Species + 18 Types from PokéAPI…</p>'; return; }
+  const focused = document.activeElement?.id === 'search', caret = focused ? document.activeElement.selectionStart : 0;
+  root.innerHTML = COMPONENTS[v.key]();
+  if (focused) { const el = document.getElementById('search'); el.focus(); el.setSelectionRange(caret, caret); }
+}
+document.addEventListener('input', e => { if (e.target.id === 'search') { S.q = e.target.value; syncUrl(false); render(); } });
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-go]'); if (!b) return;
+  const id = Number(b.dataset.go); S.id = id || null;
+  if (S.variant === 'C') S.q = '';
+  syncUrl(true); render(); window.scrollTo(0, 0);
+});
+function cycle(dir) {
+  const i = VARIANTS.findIndex(x => x.key === S.variant);
+  S.variant = VARIANTS[(i + dir + VARIANTS.length) % VARIANTS.length].key;
+  syncUrl(false); render();
+}
+document.getElementById('prev').onclick = () => cycle(-1);
+document.getElementById('next').onclick = () => cycle(1);
+document.addEventListener('keydown', e => {
+  if (e.target.closest('input, textarea, [contenteditable]')) return;
+  if (e.key === 'ArrowLeft') cycle(-1);
+  if (e.key === 'ArrowRight') cycle(1);
+});
+
+render();
+load().catch(err => { document.getElementById('root').innerHTML = `<p class="p-10 text-red-600">PokéAPI load failed: ${err}</p>`; });
+</script>
+</body>
+</html>
