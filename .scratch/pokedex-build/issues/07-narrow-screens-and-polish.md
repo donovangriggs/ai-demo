@@ -6,9 +6,13 @@ Spec: [spec.md](../../pokedex/spec.md), §6 Layout, §8 Done when. Prototype: [l
 
 **Blocked by:** 02 (Instant search), 05 (Type Matchups on the detail page), 06 (Loading and error states).
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] Below the breakpoint (suggested `md`), `/` shows only the list, and `/pokemon/6` shows only the detail with a back link. The sidebar hides itself on detail routes using the current pathname.
-- [ ] Going list → detail → back keeps the search text and scroll position.
-- [ ] The visual pass against the prototype is done: sidebar density, badge and colour usage, Base Stat bars, Type Matchup groups, Abilities.
-- [ ] Every item in spec §8 "Done when" is checked and passes: `npm test`, `npm run build` with 151 prerendered pages, search, navigation, not-found cases, the Charizard matchups, and phone-width behaviour.
+- [x] Below the breakpoint (suggested `md`), `/` shows only the list, and `/pokemon/6` shows only the detail with a back link. The sidebar hides itself on detail routes using the current pathname.
+- [x] Going list → detail → back keeps the search text and scroll position.
+- [x] The visual pass against the prototype is done: sidebar density, badge and colour usage, Base Stat bars, Type Matchup groups, Abilities.
+- [x] Every item in spec §8 "Done when" is checked and passes: `npm test`, `npm run build` with 151 prerendered pages, search, navigation, not-found cases, the Charizard matchups, and phone-width behaviour.
+
+## Comments
+
+- Implemented on integration branch `pokedex-build` in dd748c1. Code-review fixes across all tickets are in 9028692. On `pokedex-build`, 81 tests pass, and tsc, lint and the build (151 prerendered detail pages) are clean.

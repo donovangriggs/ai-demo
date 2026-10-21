@@ -11,13 +11,17 @@ Spec: [spec.md](../../pokedex/spec.md), §3 Routes, §4 `getSpecies`, §5 `poked
 
 **Blocked by:** 03 (Type badges in the list).
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] `parsePokedexNumber(param)` returns `6` for `'6'`, and `null` for `'006'`, `'0'`, `'152'`, `'abc'`, `'6.5'` and `''`. All of these are covered by tests.
-- [ ] The detail page calls `notFound()` **before any fetch** when the param doesn't parse. `/pokemon/999`, `/pokemon/abc` and `/pokemon/006` show "No Species #… This Pokédex covers #1–151" with a link to #1, and the sidebar stays visible.
-- [ ] `getSpecies(number)` returns the summary plus Base Stats and Abilities (display name from the English `names[]` entry, `hidden`, and the English short effect). It uses cached Pokémon and Ability fetchers that throw on non-2xx responses and drop `moves` and every `past_*` field. Each shared Ability is fetched once.
-- [ ] `generateStaticParams` returns 1…`POKEDEX_SIZE`, and `npm run build` prerenders all 151 detail pages.
-- [ ] Sidebar links use the default prefetch, with no per-link `prefetch`. The selected row is highlighted.
-- [ ] Base Stats show the labels HP, Attack, Defense, Sp. Atk, Sp. Def and Speed, each with a value and a bar scaled to 255 in the primary Type's colour, plus a Total.
-- [ ] Abilities show the display name, the Hidden marker where it applies, and the short effect. Gengar shows a single Ability, and Bulbasaur shows Overgrow plus Chlorophyll (Hidden).
-- [ ] `/` on desktop shows the empty "Select a Pokémon" pane next to the sidebar.
+- [x] `parsePokedexNumber(param)` returns `6` for `'6'`, and `null` for `'006'`, `'0'`, `'152'`, `'abc'`, `'6.5'` and `''`. All of these are covered by tests.
+- [x] The detail page calls `notFound()` **before any fetch** when the param doesn't parse. `/pokemon/999`, `/pokemon/abc` and `/pokemon/006` show "No Species #… This Pokédex covers #1–151" with a link to #1, and the sidebar stays visible.
+- [x] `getSpecies(number)` returns the summary plus Base Stats and Abilities (display name from the English `names[]` entry, `hidden`, and the English short effect). It uses cached Pokémon and Ability fetchers that throw on non-2xx responses and drop `moves` and every `past_*` field. Each shared Ability is fetched once.
+- [x] `generateStaticParams` returns 1…`POKEDEX_SIZE`, and `npm run build` prerenders all 151 detail pages.
+- [x] Sidebar links use the default prefetch, with no per-link `prefetch`. The selected row is highlighted.
+- [x] Base Stats show the labels HP, Attack, Defense, Sp. Atk, Sp. Def and Speed, each with a value and a bar scaled to 255 in the primary Type's colour, plus a Total.
+- [x] Abilities show the display name, the Hidden marker where it applies, and the short effect. Gengar shows a single Ability, and Bulbasaur shows Overgrow plus Chlorophyll (Hidden).
+- [x] `/` on desktop shows the empty "Select a Pokémon" pane next to the sidebar.
+
+## Comments
+
+- Implemented on integration branch `pokedex-build` in 1fd8b56. Code-review fixes across all tickets are in 9028692. On `pokedex-build`, 81 tests pass, and tsc, lint and the build (151 prerendered detail pages) are clean.
