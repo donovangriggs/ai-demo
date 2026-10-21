@@ -1,21 +1,25 @@
+import { NO_FILTER, type PokedexFilter } from "./filter";
 import type { PokedexNumber } from "./pokedex-number";
 
-/** `?q=<search>`, or nothing for an empty search. */
-function searchSuffix(q: string): string {
-  return q ? `?${new URLSearchParams({ q })}` : "";
+/** `?q=<search>&fav=1`, leaving out an empty search and `fav` when off. */
+export function filterSuffix({ q, favoritesOnly }: PokedexFilter): string {
+  const params = new URLSearchParams();
+  if (q) params.set("q", q);
+  if (favoritesOnly) params.set("fav", "1");
+  return params.size ? `?${params}` : "";
 }
 
-/** The Pokédex URL (`/`), carrying the search text in `?q=` so going back keeps it. */
-export function pokedexHref(q: string): string {
-  return `/${searchSuffix(q)}`;
+/** The Pokédex URL (`/`), carrying the filter in `?q=` and `?fav=` so going back keeps it. */
+export function pokedexHref(filter = NO_FILTER): string {
+  return `/${filterSuffix(filter)}`;
 }
 
 /**
- * A Species' detail URL (`/pokemon/6`), carrying the search text in `?q=` so a
- * reload or a shared link restores the sidebar's filter.
+ * A Species' detail URL (`/pokemon/6`), carrying the filter in `?q=` and
+ * `?fav=` so a reload or a shared link restores the sidebar.
  */
-export function speciesHref(pokedexNumber: PokedexNumber, q = ""): string {
-  return `/pokemon/${pokedexNumber}${searchSuffix(q)}`;
+export function speciesHref(pokedexNumber: PokedexNumber, filter = NO_FILTER): string {
+  return `/pokemon/${pokedexNumber}${filterSuffix(filter)}`;
 }
 
 /**
