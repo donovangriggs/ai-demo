@@ -30,9 +30,12 @@ export function DetailSkeleton() {
 
       <section className="space-y-2">
         <div className={`h-3 w-28 ${bar}`} />
-        <BadgeRow count={4} />
-        <BadgeRow count={3} />
-        <BadgeRow count={1} />
+        {[4, 5, 1].map((count, i) => (
+          <div key={i} className="flex items-center gap-3">
+            <div className={`h-3 w-20 shrink-0 ${bar}`} />
+            <BadgeRow count={count} />
+          </div>
+        ))}
       </section>
 
       <section className="space-y-2">
