@@ -26,7 +26,8 @@ function readRaw(): string | null {
   }
 }
 
-function getSnapshot(): ReadonlySet<PokedexNumber> {
+/** This browser's Favorites right now, for effects that read them once rather than subscribe. */
+export function readFavorites(): ReadonlySet<PokedexNumber> {
   const raw = readRaw();
   if (raw !== snapshotRaw) {
     snapshotRaw = raw;
@@ -52,12 +53,12 @@ function subscribe(onChange: () => void): () => void {
 
 /** This browser's Favorites, kept in sync across tabs. */
 export function useFavorites(): ReadonlySet<PokedexNumber> {
-  return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+  return useSyncExternalStore(subscribe, readFavorites, getServerSnapshot);
 }
 
 /** Marks a Species as a Favorite, or unmarks it, and saves the result. */
 export function toggleStoredFavorite(n: PokedexNumber): void {
-  const raw = serializeFavorites(toggleFavorite(getSnapshot(), n));
+  const raw = serializeFavorites(toggleFavorite(readFavorites(), n));
   try {
     localStorage.setItem(STORAGE_KEY, raw);
   } catch {

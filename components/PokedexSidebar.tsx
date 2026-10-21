@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useParams, usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useFavorites } from "@/lib/favorites-store";
 import { NO_FILTER, parseFilter, visibleSpecies, type PokedexFilter } from "@/lib/pokedex/filter";
 import { parsePokedexNumber, POKEDEX_SIZE } from "@/lib/pokedex/pokedex-number";
 import { filterSuffix, isSpeciesPath, pokedexHref, speciesHref } from "@/lib/pokedex/routes";
@@ -12,8 +13,8 @@ import { SpeciesRow } from "./SpeciesRow";
 type Props = { species: SpeciesSummary[] };
 
 /**
- * The Pokédex sidebar with instant search. The Pokédex filter lives in `?q=`
- * and `?fav=`, written with `history.replaceState` so typing never round-trips
+ * The Pokédex sidebar with instant search and a "Favorites only" toggle. The
+ * Pokédex filter lives in `?q=` and `?fav=`, written with `history.replaceState` so typing never round-trips
  * to the server, and the sidebar follows the URL whenever it changes some other
  * way (back and forward, or a link to another route). Row links carry the
  * filter, so a reload or a shared detail URL restores it. Uses
@@ -66,7 +67,8 @@ function SidebarView({
   filter,
   onFilterChange,
 }: Props & { filter: PokedexFilter; onFilterChange?: (filter: PokedexFilter) => void }) {
-  const visible = visibleSpecies(species, filter);
+  const favorites = useFavorites();
+  const visible = visibleSpecies(species, filter, favorites);
   const { id } = useParams<{ id?: string }>();
   const selected = id === undefined ? null : parsePokedexNumber(id);
   const onDetail = isSpeciesPath(usePathname());
@@ -95,15 +97,29 @@ function SidebarView({
               {visible.length}/{POKEDEX_SIZE}
             </span>
           </h1>
-          <input
-            type="search"
-            value={filter.q}
-            readOnly={!onFilterChange}
-            onChange={(e) => onFilterChange?.({ ...filter, q: e.target.value })}
-            placeholder="Search name or #"
-            aria-label="Search Species"
-            className="w-full rounded-md bg-slate-100 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400"
-          />
+          <div className="flex gap-2">
+            <input
+              type="search"
+              value={filter.q}
+              readOnly={!onFilterChange}
+              onChange={(e) => onFilterChange?.({ ...filter, q: e.target.value })}
+              placeholder="Search name or #"
+              aria-label="Search Species"
+              className="min-w-0 flex-1 rounded-md bg-slate-100 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+            />
+            <button
+              type="button"
+              aria-pressed={filter.favoritesOnly}
+              onClick={() => onFilterChange?.({ ...filter, favoritesOnly: !filter.favoritesOnly })}
+              className={`shrink-0 rounded-md border px-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-400 ${
+                filter.favoritesOnly
+                  ? "border-amber-400 bg-amber-100 text-amber-700"
+                  : "border-slate-300 text-slate-600 hover:bg-slate-50"
+              }`}
+            >
+              <span aria-hidden>{filter.favoritesOnly ? "★" : "☆"}</span> Favorites only
+            </button>
+          </div>
         </div>
         {visible.length > 0 ? (
           <ul
@@ -125,17 +141,18 @@ function SidebarView({
               </li>
             ))}
           </ul>
+        ) : filter.favoritesOnly ? (
+          <EmptyState
+            message={favorites.size ? `No Favorites match “${filter.q}”` : "No Favorites yet"}
+            action="Show all"
+            onClick={() => onFilterChange?.({ ...filter, favoritesOnly: false })}
+          />
         ) : (
-          <div className="flex-1 space-y-2 p-3 text-slate-500">
-            <p>No Species match “{filter.q}”</p>
-            <button
-              type="button"
-              onClick={() => onFilterChange?.({ ...filter, q: "" })}
-              className="rounded-md border border-slate-300 px-2 py-1 font-medium text-slate-700 hover:bg-slate-50"
-            >
-              Clear search
-            </button>
-          </div>
+          <EmptyState
+            message={`No Species match “${filter.q}”`}
+            action="Clear search"
+            onClick={() => onFilterChange?.({ ...filter, q: "" })}
+          />
         )}
       </aside>
       {onDetail && (
@@ -146,5 +163,29 @@ function SidebarView({
         </nav>
       )}
     </>
+  );
+}
+
+/** Why the list is empty, with one button that widens the filter. */
+function EmptyState({
+  message,
+  action,
+  onClick,
+}: {
+  message: string;
+  action: string;
+  onClick: () => void;
+}) {
+  return (
+    <div className="flex-1 space-y-2 p-3 text-slate-500">
+      <p>{message}</p>
+      <button
+        type="button"
+        onClick={onClick}
+        className="rounded-md border border-slate-300 px-2 py-1 font-medium text-slate-700 hover:bg-slate-50"
+      >
+        {action}
+      </button>
+    </div>
   );
 }

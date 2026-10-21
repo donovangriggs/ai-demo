@@ -6,15 +6,15 @@ Spec: [spec.md](../spec.md), user stories 10–21 and 27; "Pokédex filter" and 
 
 **Blocked by:** 01 (Prefactor), 02 (Star a Favorite) and 03 (Random Species on load).
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] `visibleSpecies(pokedex, filter, favorites)` also keeps only Favorites when `favoritesOnly` is on, and still preserves Pokédex order.
-- [ ] Tests cover: Favorites only; search combined with Favorites only; Favorites only with no Favorites returning empty; and Favorites outside the search being excluded.
-- [ ] The sidebar has a "Favorites only" toggle button with `aria-pressed` next to the search input. It writes `?fav=1` with `history.replaceState`, and reloads and Back/Forward restore it.
-- [ ] Row links and "← All Species" carry `fav=1` when it's on.
-- [ ] Empty states: "No Favorites yet" when there are no Favorites at all, and "No Favorites match "…"" when the search excludes every Favorite. Each has a "Show all" button that turns "Favorites only" off. The existing "No Species match"/"Clear search" state stays for when the filter is off.
-- [ ] The random pick on `/` uses the Favorites from the store, so `/?fav=1` lands on a Favorite, or stays on "Select a Pokémon" when there are none.
-- [ ] Manual check: with "Favorites only" on, un-starring the open Species removes its row and the detail stays open. A second tab's filtered list updates live.
-- [ ] `npm test`, lint, the type check and `npm run build` all pass.
+- [x] `visibleSpecies(pokedex, filter, favorites)` also keeps only Favorites when `favoritesOnly` is on, and still preserves Pokédex order.
+- [x] Tests cover: Favorites only; search combined with Favorites only; Favorites only with no Favorites returning empty; and Favorites outside the search being excluded.
+- [x] The sidebar has a "Favorites only" toggle button with `aria-pressed` next to the search input. It writes `?fav=1` with `history.replaceState`, and reloads and Back/Forward restore it.
+- [x] Row links and "← All Species" carry `fav=1` when it's on.
+- [x] Empty states: "No Favorites yet" when there are no Favorites at all, and "No Favorites match "…"" when the search excludes every Favorite. Each has a "Show all" button that turns "Favorites only" off. The existing "No Species match"/"Clear search" state stays for when the filter is off.
+- [x] The random pick on `/` uses the Favorites from the store, so `/?fav=1` lands on a Favorite, or stays on "Select a Pokémon" when there are none.
+- [x] Manual check: with "Favorites only" on, un-starring the open Species removes its row and the detail stays open. A second tab's filtered list updates live.
+- [x] `npm test`, lint, the type check and `npm run build` all pass.
 
 ## Comments
