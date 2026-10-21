@@ -2,7 +2,7 @@ import "server-only";
 import { displayName } from "@/lib/pokedex/display-name";
 import { speciesTypesById } from "@/lib/pokedex/species-types";
 import { TYPE_NAMES } from "@/lib/pokedex/type-matchups";
-import type { SpeciesDetail, SpeciesSummary } from "@/lib/pokedex/types";
+import type { SpeciesDetail, SpeciesSummary, TypeChart } from "@/lib/pokedex/types";
 import { fetchAbility, fetchPokemon, fetchSpeciesList, fetchType } from "./fetchers";
 
 /** All 151 Species in Pokédex Number order, each with its Types. */
@@ -45,4 +45,14 @@ export async function getSpecies(id: number): Promise<SpeciesDetail> {
     baseStats: pokemon.baseStats,
     abilities,
   };
+}
+
+/**
+ * The Type Chart: the 18 Types as defenders, in Type id order, each with the
+ * attacking Types that deal it 2×, ½× or 0×. Built from the same cached
+ * `fetchType` calls as `getPokedex`, so it costs no extra requests.
+ */
+export async function getTypeChart(): Promise<TypeChart> {
+  const types = await Promise.all(TYPE_NAMES.map((name) => fetchType(name)));
+  return types.map(({ id, name, damageFrom }) => ({ id, name, damageFrom }));
 }

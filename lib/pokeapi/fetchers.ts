@@ -2,7 +2,7 @@ import "server-only";
 import { cacheLife } from "next/cache";
 import { POKEDEX_SIZE } from "@/lib/pokedex/pokedex-number";
 import type { TypeMembership } from "@/lib/pokedex/species-types";
-import type { BaseStats, StatName, TypeName } from "@/lib/pokedex/types";
+import type { BaseStats, StatName, TypeChartEntry, TypeName } from "@/lib/pokedex/types";
 
 const API = "https://pokeapi.co/api/v2";
 
@@ -29,11 +29,8 @@ interface RawType {
   pokemon: { slot: number; pokemon: { name: string; url: string } }[];
 }
 
-/** Trimmed Type: its Species membership and the damage it takes as a defender. */
-export interface TypeData extends TypeMembership {
-  id: number;
-  damageFrom: { double: TypeName[]; half: TypeName[]; none: TypeName[] };
-}
+/** Trimmed Type: its Type Chart entry plus its Species membership. */
+export interface TypeData extends TypeChartEntry, TypeMembership {}
 
 /**
  * Fetches JSON from PokéAPI. Throws on any non-2xx response so a failure is

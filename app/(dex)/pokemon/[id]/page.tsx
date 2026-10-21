@@ -3,13 +3,15 @@ import { notFound } from "next/navigation";
 import { Abilities } from "@/components/Abilities";
 import { BaseStats } from "@/components/BaseStats";
 import { TypeBadge } from "@/components/TypeBadge";
-import { getSpecies } from "@/lib/pokeapi";
+import { TypeMatchups } from "@/components/TypeMatchups";
+import { getSpecies, getTypeChart } from "@/lib/pokeapi";
 import {
   formatPokedexNumber,
   parsePokedexNumber,
   POKEDEX_SIZE,
 } from "@/lib/pokedex/pokedex-number";
 import { artworkUrl } from "@/lib/pokedex/sprites";
+import { groupTypeMatchups, typeMatchups } from "@/lib/pokedex/type-matchups";
 
 /** Prerender every Species' detail page at build time. */
 export function generateStaticParams() {
@@ -21,7 +23,8 @@ export default async function SpeciesPage({ params }: PageProps<"/pokemon/[id]">
   // Reject anything that isn't a canonical Pokédex Number before fetching.
   if (id === null) notFound();
 
-  const species = await getSpecies(id);
+  const [species, chart] = await Promise.all([getSpecies(id), getTypeChart()]);
+  const matchups = groupTypeMatchups(typeMatchups(species.types, chart));
 
   return (
     <article className="mx-auto w-full max-w-2xl space-y-6 p-6">
@@ -47,7 +50,7 @@ export default async function SpeciesPage({ params }: PageProps<"/pokemon/[id]">
 
       <BaseStats stats={species.baseStats} type={species.types[0]} />
 
-      {/* Type Matchups go here, between Base Stats and Abilities. */}
+      <TypeMatchups groups={matchups} />
 
       <Abilities abilities={species.abilities} />
     </article>
