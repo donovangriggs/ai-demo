@@ -4,18 +4,29 @@ import { isSpeciesPath, pokedexHref, speciesHref } from "@/lib/pokedex/routes";
 
 const six = parsePokedexNumber("6") as PokedexNumber;
 
+/** A search-only filter, with Favorites only off. */
+const search = (q: string) => ({ q, favoritesOnly: false });
+
 describe("pokedexHref", () => {
   it("links to the bare Pokédex when there is no search", () => {
-    expect(pokedexHref("")).toBe("/");
+    expect(pokedexHref(search(""))).toBe("/");
   });
 
   it("keeps the search text in ?q=", () => {
-    expect(pokedexHref("char")).toBe("/?q=char");
+    expect(pokedexHref(search("char"))).toBe("/?q=char");
   });
 
   it("encodes spaces, punctuation and #", () => {
-    expect(pokedexHref("mr. mime")).toBe("/?q=mr.+mime");
-    expect(pokedexHref("#6")).toBe("/?q=%236");
+    expect(pokedexHref(search("mr. mime"))).toBe("/?q=mr.+mime");
+    expect(pokedexHref(search("#6"))).toBe("/?q=%236");
+  });
+
+  it("keeps Favorites only in ?fav=1", () => {
+    expect(pokedexHref({ q: "", favoritesOnly: true })).toBe("/?fav=1");
+  });
+
+  it("writes ?q= before fav=1, encoding the search", () => {
+    expect(pokedexHref({ q: "mr. mime", favoritesOnly: true })).toBe("/?q=mr.+mime&fav=1");
   });
 });
 
@@ -25,12 +36,17 @@ describe("speciesHref", () => {
   });
 
   it("drops an empty search", () => {
-    expect(speciesHref(six, "")).toBe("/pokemon/6");
+    expect(speciesHref(six, search(""))).toBe("/pokemon/6");
   });
 
   it("carries the search text in ?q= so a reload restores the filter", () => {
-    expect(speciesHref(six, "char")).toBe("/pokemon/6?q=char");
-    expect(speciesHref(six, "mr. mime")).toBe("/pokemon/6?q=mr.+mime");
+    expect(speciesHref(six, search("char"))).toBe("/pokemon/6?q=char");
+    expect(speciesHref(six, search("mr. mime"))).toBe("/pokemon/6?q=mr.+mime");
+  });
+
+  it("carries Favorites only in fav=1, after ?q=", () => {
+    expect(speciesHref(six, { q: "", favoritesOnly: true })).toBe("/pokemon/6?fav=1");
+    expect(speciesHref(six, { q: "#6", favoritesOnly: true })).toBe("/pokemon/6?q=%236&fav=1");
   });
 });
 
