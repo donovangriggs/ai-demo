@@ -10,6 +10,7 @@ import {
   parsePokedexNumber,
   POKEDEX_SIZE,
 } from "@/lib/pokedex/pokedex-number";
+import { primaryType } from "@/lib/pokedex/species-types";
 import { artworkUrl } from "@/lib/pokedex/sprites";
 import { groupTypeMatchups, typeMatchups } from "@/lib/pokedex/type-matchups";
 
@@ -19,18 +20,19 @@ export function generateStaticParams() {
 }
 
 export default async function SpeciesPage({ params }: PageProps<"/pokemon/[id]">) {
-  const id = parsePokedexNumber((await params).id);
+  const pokedexNumber = parsePokedexNumber((await params).id);
   // Reject anything that isn't a canonical Pokédex Number before fetching.
-  if (id === null) notFound();
+  if (pokedexNumber === null) notFound();
 
-  const [species, chart] = await Promise.all([getSpecies(id), getTypeChart()]);
+  const [species, chart] = await Promise.all([getSpecies(pokedexNumber), getTypeChart()]);
   const matchups = groupTypeMatchups(typeMatchups(species.types, chart));
+  const primary = primaryType(species);
 
   return (
     <article
       className="w-full"
       style={{
-        background: `linear-gradient(180deg, ${TYPE_COLOURS[species.types[0]]}33, transparent 420px)`,
+        background: `linear-gradient(180deg, ${TYPE_COLOURS[primary]}33, transparent 420px)`,
       }}
     >
       <div className="mx-auto max-w-2xl space-y-6 p-4 md:p-8">
@@ -54,7 +56,7 @@ export default async function SpeciesPage({ params }: PageProps<"/pokemon/[id]">
           </div>
         </header>
 
-        <BaseStats stats={species.baseStats} type={species.types[0]} />
+        <BaseStats baseStats={species.baseStats} type={primary} />
 
         <TypeMatchups groups={matchups} />
 

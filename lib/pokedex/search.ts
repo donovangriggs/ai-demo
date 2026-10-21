@@ -1,3 +1,4 @@
+import { padPokedexNumber } from "./pokedex-number";
 import type { SpeciesSummary } from "./types";
 
 /** Lowercases, strips accents and keeps only `a–z0–9`, so `Mr. Mime` → `mrmime`. */
@@ -22,8 +23,9 @@ export function matchesQuery(
 ): boolean {
   const trimmed = q.trim().replace(/^#/, "");
   if (/^\d+$/.test(trimmed)) {
-    const id = String(species.id);
-    return id.startsWith(trimmed) || id.padStart(3, "0").startsWith(trimmed);
+    return (
+      String(species.id).startsWith(trimmed) || padPokedexNumber(species.id).startsWith(trimmed)
+    );
   }
 
   const query = normalise(trimmed);

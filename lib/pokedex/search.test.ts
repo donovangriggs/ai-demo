@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { displayName } from "@/lib/pokedex/display-name";
 import { matchesQuery } from "@/lib/pokedex/search";
+import type { PokedexNumber } from "@/lib/pokedex/pokedex-number";
 import type { SpeciesSummary } from "@/lib/pokedex/types";
 
 /** The 151 PokéAPI slugs, in Pokédex Number order. */
@@ -23,7 +24,7 @@ omastar kabuto kabutops aerodactyl snorlax articuno zapdos moltres dratini
 dragonair dragonite mewtwo mew`.split(/\s+/);
 
 const POKEDEX: Pick<SpeciesSummary, "id" | "slug" | "displayName">[] = SLUGS.map((slug, i) => ({
-  id: i + 1,
+  id: (i + 1) as PokedexNumber,
   slug,
   displayName: displayName(slug),
 }));

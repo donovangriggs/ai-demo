@@ -2,27 +2,53 @@
 
 import Link from "next/link";
 import { useParams, usePathname, useSearchParams } from "next/navigation";
-import { useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { parsePokedexNumber, POKEDEX_SIZE } from "@/lib/pokedex/pokedex-number";
-import { isSpeciesPath, listHref } from "@/lib/pokedex/routes";
+import { isSpeciesPath, pokedexHref, speciesHref } from "@/lib/pokedex/routes";
 import { matchesQuery } from "@/lib/pokedex/search";
 import type { SpeciesSummary } from "@/lib/pokedex/types";
 import { SpeciesRow } from "./SpeciesRow";
 
 type Props = { species: SpeciesSummary[] };
 
+/** The search text in a URL's `?q=`, or `""`. */
+function queryOf(params: Pick<URLSearchParams, "get">): string {
+  return params.get("q") ?? "";
+}
+
 /**
  * The Pokédex sidebar with instant search. The query lives in `?q=`, written
- * with `history.replaceState` so typing never round-trips to the server.
- * Uses `useSearchParams`, so render it inside `<Suspense>` with
- * `<PokedexSidebarFallback>` as the fallback.
+ * with `history.replaceState` so typing never round-trips to the server, and
+ * the input follows `?q=` whenever the URL changes some other way (back and
+ * forward, or a link to another route). Row links carry `?q=`, so a reload or
+ * a shared detail URL restores the filter. Uses `useSearchParams`, so render
+ * it inside `<Suspense>` with `<PokedexSidebarFallback>` as the fallback.
  *
  * Below `md` the split stacks: on detail routes the sidebar hides itself and
  * renders a back link (carrying `?q=`) above the detail pane instead.
  */
 export function PokedexSidebar({ species }: Props) {
   const searchParams = useSearchParams();
-  const [query, setQuery] = useState(() => searchParams.get("q") ?? "");
+  const pathname = usePathname();
+  // Local state, not `searchParams` directly: typing must update the input
+  // synchronously, while the router applies each `replaceState` in a transition.
+  const [query, setQuery] = useState(() => queryOf(searchParams));
+
+  // A navigation to another route (a link, or back/forward across routes) may
+  // carry a different `?q=`: adopt it. Typing never changes the pathname, so
+  // the router's lagging echoes of our own `replaceState` calls are ignored.
+  const [syncedPathname, setSyncedPathname] = useState(pathname);
+  if (pathname !== syncedPathname) {
+    setSyncedPathname(pathname);
+    setQuery(queryOf(searchParams));
+  }
+
+  // Back/forward between entries of the same route changes only `?q=`.
+  useEffect(() => {
+    const onPopState = () => setQuery(queryOf(new URL(window.location.href).searchParams));
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
 
   function changeQuery(next: string) {
     setQuery(next);
@@ -47,7 +73,7 @@ function SidebarView({
 }: Props & { query: string; onQueryChange?: (q: string) => void }) {
   const visible = species.filter((s) => matchesQuery(s, query));
   const { id } = useParams<{ id?: string }>();
-  const selectedId = id === undefined ? null : parsePokedexNumber(id);
+  const selected = id === undefined ? null : parsePokedexNumber(id);
   const onDetail = isSpeciesPath(usePathname());
 
   // On narrow screens the list is `display: none` on detail routes, which some
@@ -62,9 +88,9 @@ function SidebarView({
   return (
     <>
       <aside
-        // `data-list-route` lets the `(dex)` layout's <main>, a later sibling,
-        // hide itself on `/` at narrow widths (via `peer`).
-        data-list-route={onDetail ? undefined : ""}
+        // `data-pokedex-route` lets the `(dex)` layout's <main>, a later
+        // sibling, hide itself on `/` at narrow widths (via `peer`).
+        data-pokedex-route={onDetail ? undefined : ""}
         className={`${onDetail ? "max-md:hidden" : "max-md:min-h-0 max-md:flex-1"} peer flex shrink-0 flex-col border-slate-200 md:w-80 md:border-r`}
       >
         <div className="space-y-2 border-b border-slate-200 p-3">
@@ -95,11 +121,11 @@ function SidebarView({
             {visible.map((s) => (
               <li key={s.id}>
                 <Link
-                  href={`/pokemon/${s.id}`}
-                  aria-current={s.id === selectedId ? "page" : undefined}
+                  href={speciesHref(s.id, query)}
+                  aria-current={s.id === selected ? "page" : undefined}
                   className="block"
                 >
-                  <SpeciesRow species={s} selected={s.id === selectedId} />
+                  <SpeciesRow species={s} selected={s.id === selected} />
                 </Link>
               </li>
             ))}
@@ -119,7 +145,7 @@ function SidebarView({
       </aside>
       {onDetail && (
         <nav className="shrink-0 border-b border-slate-200 px-4 py-3 md:hidden">
-          <Link href={listHref(query)} className="font-medium text-slate-600 hover:text-slate-900">
+          <Link href={pokedexHref(query)} className="font-medium text-slate-600 hover:text-slate-900">
             ← All Species
           </Link>
         </nav>

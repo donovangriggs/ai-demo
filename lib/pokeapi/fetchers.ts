@@ -1,19 +1,25 @@
 import "server-only";
 import { cacheLife } from "next/cache";
-import { POKEDEX_SIZE } from "@/lib/pokedex/pokedex-number";
-import type { TypeMembership } from "@/lib/pokedex/species-types";
-import type { BaseStats, StatName, TypeChartEntry, TypeName } from "@/lib/pokedex/types";
+import { isPokedexNumber, POKEDEX_SIZE, type PokedexNumber } from "@/lib/pokedex/pokedex-number";
+import { bySlot } from "@/lib/pokedex/slots";
+import type { TypeMembers } from "@/lib/pokedex/species-types";
+import type {
+  BaseStatName,
+  BaseStats,
+  TypeChartEntry,
+  TypeName,
+} from "@/lib/pokedex/types";
 
-const API = "https://pokeapi.co/api/v2";
+const POKEAPI_BASE_URL = "https://pokeapi.co/api/v2";
 
 /** Raw `GET /pokemon?limit=N` response (only the fields we read). */
 interface RawSpeciesList {
   results: { name: string; url: string }[];
 }
 
-/** Trimmed list entry: Pokédex Number and slug. */
-export interface SpeciesListEntry {
-  id: number;
+/** A Species in the Pokédex, by Pokédex Number and slug. */
+export interface PokedexSpecies {
+  id: PokedexNumber;
   slug: string;
 }
 
@@ -29,59 +35,70 @@ interface RawType {
   pokemon: { slot: number; pokemon: { name: string; url: string } }[];
 }
 
-/** Trimmed Type: its Type Chart entry plus its Species membership. */
-export interface TypeData extends TypeChartEntry, TypeMembership {}
+/** A Type trimmed to its Type Chart entry plus the Pokédex's Species that have it. */
+export interface TypeWithSpecies extends TypeChartEntry {
+  species: TypeMembers["species"];
+}
 
 /**
  * Fetches JSON from PokéAPI. Throws on any non-2xx response so a failure is
  * never cached as data.
  */
 async function getJson<T>(path: string): Promise<T> {
-  const res = await fetch(`${API}${path}`);
+  const res = await fetch(`${POKEAPI_BASE_URL}${path}`);
   if (!res.ok) {
     throw new Error(`PokéAPI ${path} responded ${res.status} ${res.statusText}`);
   }
   return (await res.json()) as T;
 }
 
-/** `https://pokeapi.co/api/v2/pokemon/6/` → `6` */
-function idFromUrl(url: string): number {
+/** `https://pokeapi.co/api/v2/pokemon/6/` → `6` (any resource id, including non-default Varieties). */
+function resourceIdFromUrl(url: string): number {
   const match = /\/(\d+)\/?$/.exec(url);
   if (!match) throw new Error(`PokéAPI URL has no id: ${url}`);
   return Number(match[1]);
 }
 
 /** The first 151 Species as `{ id, slug }`, in Pokédex Number order. */
-export async function fetchSpeciesList(): Promise<SpeciesListEntry[]> {
+export async function fetchSpeciesList(): Promise<PokedexSpecies[]> {
   "use cache";
   cacheLife("max");
 
   const raw = await getJson<RawSpeciesList>(`/pokemon?limit=${POKEDEX_SIZE}`);
   return raw.results
-    .map((r) => ({ id: idFromUrl(r.url), slug: r.name }))
+    .map((r) => {
+      const id = resourceIdFromUrl(r.url);
+      if (!isPokedexNumber(id)) throw new Error(`PokéAPI listed #${id} (${r.name}) outside the Pokédex`);
+      return { id, slug: r.name };
+    })
     .sort((a, b) => a.id - b.id);
 }
 
 /**
- * One of the 18 battle Types, trimmed to its id, name, Species membership
- * (with slots) and the current `*_damage_from` lists.
+ * One of the 18 battle Types, trimmed to its id, name, the current
+ * `*_damage_from` lists and the Pokédex's Species that have it (with slots).
+ * Later Species and non-default Varieties are dropped here, so they never
+ * reach the cache.
  */
-export async function fetchType(name: TypeName): Promise<TypeData> {
+export async function fetchType(name: TypeName): Promise<TypeWithSpecies> {
   "use cache";
   cacheLife("max");
 
   const raw = await getJson<RawType>(`/type/${name}`);
   const relations = raw.damage_relations;
-  const names = (list: { name: TypeName }[]) => list.map((t) => t.name);
+  const typeNames = (list: { name: TypeName }[]) => list.map((t) => t.name);
   return {
     id: raw.id,
     name: raw.name,
-    pokemon: raw.pokemon.map((p) => ({ id: idFromUrl(p.pokemon.url), slot: p.slot })),
     damageFrom: {
-      double: names(relations.double_damage_from),
-      half: names(relations.half_damage_from),
-      none: names(relations.no_damage_from),
+      double: typeNames(relations.double_damage_from),
+      half: typeNames(relations.half_damage_from),
+      none: typeNames(relations.no_damage_from),
     },
+    species: raw.pokemon.flatMap(({ slot, pokemon }) => {
+      const pokedexNumber = resourceIdFromUrl(pokemon.url);
+      return isPokedexNumber(pokedexNumber) ? [{ pokedexNumber, slot }] : [];
+    }),
   };
 }
 
@@ -90,22 +107,21 @@ export async function fetchType(name: TypeName): Promise<TypeData> {
  * `past_*` fields are never read or returned.
  */
 interface RawPokemon {
-  id: number;
   name: string;
   types: { slot: number; type: { name: TypeName } }[];
-  stats: { base_stat: number; stat: { name: StatName } }[];
+  stats: { base_stat: number; stat: { name: BaseStatName } }[];
   abilities: { slot: number; is_hidden: boolean; ability: { name: string } }[];
 }
 
-/** Trimmed Pokémon: the default Variety's current Types, Base Stats and Abilities. */
-export interface PokemonData {
-  id: number;
+/** A Species' default Variety, trimmed to its current Types, Base Stats and Abilities. */
+export interface DefaultVariety {
+  id: PokedexNumber;
   slug: string;
   /** In slot order (primary Type first). */
   types: TypeName[];
   baseStats: BaseStats;
-  /** In slot order. */
-  abilities: { name: string; hidden: boolean }[];
+  /** Ability slugs in slot order. */
+  abilities: { slug: string; hidden: boolean }[];
 }
 
 /** Raw `GET /ability/{name}` response (only the fields we read). */
@@ -115,46 +131,44 @@ interface RawAbility {
   effect_entries: { short_effect: string; language: { name: string } }[];
 }
 
-/** Trimmed Ability: its English name and short effect, if PokéAPI has them. */
-export interface AbilityData {
+/** An Ability's English text: its name and short effect, if PokéAPI has them. */
+export interface AbilityText {
   slug: string;
   englishName: string | null;
   shortEffect: string | null;
 }
 
 /** A Species' default Variety (`/pokemon/{id}`), trimmed to Types, Base Stats and Abilities. */
-export async function fetchPokemon(id: number): Promise<PokemonData> {
+export async function fetchPokemon(id: PokedexNumber): Promise<DefaultVariety> {
   "use cache";
   cacheLife("max");
 
   const raw = await getJson<RawPokemon>(`/pokemon/${id}`);
-  const bySlot = <T extends { slot: number }>(list: T[]) =>
-    [...list].sort((a, b) => a.slot - b.slot);
   return {
-    id: raw.id,
+    id,
     slug: raw.name,
     types: bySlot(raw.types).map((t) => t.type.name),
     baseStats: Object.fromEntries(
       raw.stats.map((s) => [s.stat.name, s.base_stat]),
     ) as BaseStats,
     abilities: bySlot(raw.abilities).map((a) => ({
-      name: a.ability.name,
+      slug: a.ability.name,
       hidden: a.is_hidden,
     })),
   };
 }
 
 /** One Ability (`/ability/{name}`), trimmed to its English name and short effect. */
-export async function fetchAbility(name: string): Promise<AbilityData> {
+export async function fetchAbility(name: string): Promise<AbilityText> {
   "use cache";
   cacheLife("max");
 
   const raw = await getJson<RawAbility>(`/ability/${name}`);
-  const english = <T extends { language: { name: string } }>(list: T[]) =>
+  const findEnglishEntry = <T extends { language: { name: string } }>(list: T[]) =>
     list.find((entry) => entry.language.name === "en");
   return {
     slug: raw.name,
-    englishName: english(raw.names)?.name ?? null,
-    shortEffect: english(raw.effect_entries)?.short_effect ?? null,
+    englishName: findEnglishEntry(raw.names)?.name ?? null,
+    shortEffect: findEnglishEntry(raw.effect_entries)?.short_effect ?? null,
   };
 }

@@ -4,8 +4,8 @@ import { Section } from "./Section";
 import { TYPE_COLOURS } from "./TypeBadge";
 
 /** One bar per Base Stat, scaled to 255 and tinted with the primary Type, plus a Total. */
-export function BaseStats({ stats, type }: { stats: BaseStatsData; type: TypeName }) {
-  const { rows, total } = baseStatRows(stats);
+export function BaseStats({ baseStats, type }: { baseStats: BaseStatsData; type: TypeName }) {
+  const { rows, total } = baseStatRows(baseStats);
   return (
     <Section title="Base Stats">
       <dl>

@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { PokedexSidebar, PokedexSidebarFallback } from "@/components/PokedexSidebar";
 import { getPokedex } from "@/lib/pokeapi";
 
-export default async function DexLayout({ children }: LayoutProps<"/">) {
+export default async function PokedexLayout({ children }: LayoutProps<"/">) {
   const species = await getPokedex();
   return (
     // Side by side from `md`; below it the sidebar (list) and the detail pane
@@ -11,8 +11,8 @@ export default async function DexLayout({ children }: LayoutProps<"/">) {
       <Suspense fallback={<PokedexSidebarFallback species={species} />}>
         <PokedexSidebar species={species} />
       </Suspense>
-      {/* The sidebar marks the list route; narrow screens then show the list only. */}
-      <main className="flex min-h-0 flex-1 overflow-y-auto max-md:peer-data-list-route:hidden">
+      {/* The sidebar marks the Pokédex route (`/`); narrow screens then show the sidebar only. */}
+      <main className="flex min-h-0 flex-1 overflow-y-auto max-md:peer-data-pokedex-route:hidden">
         {children}
       </main>
     </div>

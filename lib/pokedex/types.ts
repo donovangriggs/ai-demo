@@ -1,23 +1,8 @@
-/** One of the 18 battle Types. */
-export type TypeName =
-  | "normal"
-  | "fighting"
-  | "flying"
-  | "poison"
-  | "ground"
-  | "rock"
-  | "bug"
-  | "ghost"
-  | "steel"
-  | "fire"
-  | "water"
-  | "grass"
-  | "electric"
-  | "psychic"
-  | "ice"
-  | "dragon"
-  | "dark"
-  | "fairy";
+import type { PokedexNumber } from "./pokedex-number";
+import type { TYPE_NAMES } from "./type-matchups";
+
+/** One of the 18 battle Types, as listed in `TYPE_NAMES`. */
+export type TypeName = (typeof TYPE_NAMES)[number];
 
 /** The damage multiplier a Species takes from one attacking Type (a Type Matchup). */
 export type Multiplier = 0 | 0.25 | 0.5 | 1 | 2 | 4;
@@ -37,7 +22,7 @@ export type TypeChart = TypeChartEntry[];
 /** One Species as shown in the Pokédex list. */
 export interface SpeciesSummary {
   /** Pokédex Number (1–151). */
-  id: number;
+  id: PokedexNumber;
   /** PokéAPI slug, e.g. `mr-mime`. */
   slug: string;
   /** English display name, e.g. `Mr. Mime`. */
@@ -47,7 +32,7 @@ export interface SpeciesSummary {
 }
 
 /** PokéAPI's slug for each of the six Base Stats. */
-export type StatName =
+export type BaseStatName =
   | "hp"
   | "attack"
   | "defense"
@@ -55,8 +40,8 @@ export type StatName =
   | "special-defense"
   | "speed";
 
-/** A Species' six Base Stats, keyed by stat slug. */
-export type BaseStats = Record<StatName, number>;
+/** A Species' six Base Stats, keyed by Base Stat slug. */
+export type BaseStats = Record<BaseStatName, number>;
 
 /** One of a Species' Abilities, as shown on its detail page. */
 export interface SpeciesAbility {

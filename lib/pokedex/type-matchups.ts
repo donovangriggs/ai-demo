@@ -20,12 +20,7 @@ export const TYPE_NAMES = [
   "dragon",
   "dark",
   "fairy",
-] as const satisfies readonly TypeName[];
-
-// Compile-time check that TYPE_NAMES lists every TypeName.
-type MissingTypeNames = Exclude<TypeName, (typeof TYPE_NAMES)[number]>;
-const _allTypeNamesListed: MissingTypeNames extends never ? true : never = true;
-void _allTypeNamesListed;
+] as const;
 
 /**
  * The Type Matchup against every attacking Type for a Species with the given

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { CenteredMessage } from "./CenteredMessage";
 
 /**
  * A message and a Retry button for an error boundary. `retry` re-fetches and
@@ -22,18 +23,14 @@ export function RetryPanel({
   }, [error]);
 
   return (
-    <div
-      role="alert"
-      className={`flex flex-1 flex-col items-center justify-center gap-3 p-6 text-center ${className}`}
-    >
-      <p className="text-lg font-semibold text-slate-700">{title}</p>
+    <CenteredMessage role="alert" title={title} className={className}>
       <button
         type="button"
         onClick={() => retry()}
-        className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700"
+        className="mt-1 rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700"
       >
         Retry
       </button>
-    </div>
+    </CenteredMessage>
   );
 }
