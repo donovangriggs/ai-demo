@@ -22,3 +22,8 @@ export function visibleSpecies<S extends Pick<SpeciesSummary, "id" | "slug" | "d
 ): S[] {
   return pokedex.filter((s) => matchesQuery(s, filter.q));
 }
+
+/** One Species picked at random from a list, or `null` when it's empty. */
+export function randomPick<S>(visible: readonly S[], random = Math.random): S | null {
+  return visible[Math.floor(random() * visible.length)] ?? null;
+}
