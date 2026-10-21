@@ -19,6 +19,21 @@ export type TypeName =
   | "dark"
   | "fairy";
 
+/** The damage multiplier a Species takes from one attacking Type (a Type Matchup). */
+export type Multiplier = 0 | 0.25 | 0.5 | 1 | 2 | 4;
+
+/** One defending Type in the Type Chart: the attacking Types that deal it 2×, ½× or 0×. */
+export interface TypeChartEntry {
+  /** PokéAPI Type id (1–18). */
+  id: number;
+  name: TypeName;
+  /** Attacking Type names; any Type not listed deals 1×. */
+  damageFrom: { double: TypeName[]; half: TypeName[]; none: TypeName[] };
+}
+
+/** The Type Chart: the 18 Types as defenders. */
+export type TypeChart = TypeChartEntry[];
+
 /** One Species as shown in the Pokédex list. */
 export interface SpeciesSummary {
   /** Pokédex Number (1–151). */
