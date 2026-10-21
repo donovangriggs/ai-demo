@@ -1,8 +1,9 @@
 "use client";
 
-import { useSearchParams } from "next/navigation";
+import Link from "next/link";
+import { useParams, useSearchParams } from "next/navigation";
 import { useState } from "react";
-import { POKEDEX_SIZE } from "@/lib/pokedex/pokedex-number";
+import { parsePokedexNumber, POKEDEX_SIZE } from "@/lib/pokedex/pokedex-number";
 import { matchesQuery } from "@/lib/pokedex/search";
 import type { SpeciesSummary } from "@/lib/pokedex/types";
 import { SpeciesRow } from "./SpeciesRow";
@@ -43,6 +44,8 @@ function SidebarView({
   onQueryChange,
 }: Props & { query: string; onQueryChange?: (q: string) => void }) {
   const visible = species.filter((s) => matchesQuery(s, query));
+  const { id } = useParams<{ id?: string }>();
+  const selectedId = id === undefined ? null : parsePokedexNumber(id);
 
   return (
     <aside className="flex w-72 shrink-0 flex-col border-r border-slate-200">
@@ -67,7 +70,13 @@ function SidebarView({
         <ul className="flex-1 overflow-y-auto py-1">
           {visible.map((s) => (
             <li key={s.id}>
-              <SpeciesRow species={s} />
+              <Link
+                href={`/pokemon/${s.id}`}
+                aria-current={s.id === selectedId ? "page" : undefined}
+                className="block"
+              >
+                <SpeciesRow species={s} selected={s.id === selectedId} />
+              </Link>
             </li>
           ))}
         </ul>

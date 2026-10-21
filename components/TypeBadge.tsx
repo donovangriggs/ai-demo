@@ -1,7 +1,7 @@
 import type { TypeName } from "@/lib/pokedex/types";
 
 /** Type colours from the look-and-feel prototype. */
-const TYPE_COLOURS: Record<TypeName, string> = {
+export const TYPE_COLOURS: Record<TypeName, string> = {
   normal: "#A8A77A",
   fire: "#EE8130",
   water: "#6390F0",

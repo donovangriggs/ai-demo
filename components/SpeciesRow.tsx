@@ -4,9 +4,20 @@ import { spriteUrl } from "@/lib/pokedex/sprites";
 import type { SpeciesSummary } from "@/lib/pokedex/types";
 import { TypeBadge } from "./TypeBadge";
 
-export function SpeciesRow({ species }: { species: SpeciesSummary }) {
+export function SpeciesRow({
+  species,
+  selected = false,
+}: {
+  species: SpeciesSummary;
+  /** Whether this Species' detail page is open. */
+  selected?: boolean;
+}) {
   return (
-    <div className="flex items-center gap-2 border-l-4 border-transparent px-3 py-1 hover:bg-slate-50">
+    <div
+      className={`flex items-center gap-2 border-l-4 px-3 py-1 ${
+        selected ? "border-slate-900 bg-slate-100" : "border-transparent hover:bg-slate-50"
+      }`}
+    >
       <Image
         src={spriteUrl(species.id)}
         alt=""

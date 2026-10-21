@@ -2,7 +2,7 @@ import "server-only";
 import { cacheLife } from "next/cache";
 import { POKEDEX_SIZE } from "@/lib/pokedex/pokedex-number";
 import type { TypeMembership } from "@/lib/pokedex/species-types";
-import type { TypeName } from "@/lib/pokedex/types";
+import type { BaseStats, StatName, TypeName } from "@/lib/pokedex/types";
 
 const API = "https://pokeapi.co/api/v2";
 
@@ -85,5 +85,79 @@ export async function fetchType(name: TypeName): Promise<TypeData> {
       half: names(relations.half_damage_from),
       none: names(relations.no_damage_from),
     },
+  };
+}
+
+/**
+ * Raw `GET /pokemon/{id}` response (only the fields we read). `moves` and the
+ * `past_*` fields are never read or returned.
+ */
+interface RawPokemon {
+  id: number;
+  name: string;
+  types: { slot: number; type: { name: TypeName } }[];
+  stats: { base_stat: number; stat: { name: StatName } }[];
+  abilities: { slot: number; is_hidden: boolean; ability: { name: string } }[];
+}
+
+/** Trimmed Pokémon: the default Variety's current Types, Base Stats and Abilities. */
+export interface PokemonData {
+  id: number;
+  slug: string;
+  /** In slot order (primary Type first). */
+  types: TypeName[];
+  baseStats: BaseStats;
+  /** In slot order. */
+  abilities: { name: string; hidden: boolean }[];
+}
+
+/** Raw `GET /ability/{name}` response (only the fields we read). */
+interface RawAbility {
+  name: string;
+  names: { name: string; language: { name: string } }[];
+  effect_entries: { short_effect: string; language: { name: string } }[];
+}
+
+/** Trimmed Ability: its English name and short effect, if PokéAPI has them. */
+export interface AbilityData {
+  slug: string;
+  englishName: string | null;
+  shortEffect: string | null;
+}
+
+/** A Species' default Variety (`/pokemon/{id}`), trimmed to Types, Base Stats and Abilities. */
+export async function fetchPokemon(id: number): Promise<PokemonData> {
+  "use cache";
+  cacheLife("max");
+
+  const raw = await getJson<RawPokemon>(`/pokemon/${id}`);
+  const bySlot = <T extends { slot: number }>(list: T[]) =>
+    [...list].sort((a, b) => a.slot - b.slot);
+  return {
+    id: raw.id,
+    slug: raw.name,
+    types: bySlot(raw.types).map((t) => t.type.name),
+    baseStats: Object.fromEntries(
+      raw.stats.map((s) => [s.stat.name, s.base_stat]),
+    ) as BaseStats,
+    abilities: bySlot(raw.abilities).map((a) => ({
+      name: a.ability.name,
+      hidden: a.is_hidden,
+    })),
+  };
+}
+
+/** One Ability (`/ability/{name}`), trimmed to its English name and short effect. */
+export async function fetchAbility(name: string): Promise<AbilityData> {
+  "use cache";
+  cacheLife("max");
+
+  const raw = await getJson<RawAbility>(`/ability/${name}`);
+  const english = <T extends { language: { name: string } }>(list: T[]) =>
+    list.find((entry) => entry.language.name === "en");
+  return {
+    slug: raw.name,
+    englishName: english(raw.names)?.name ?? null,
+    shortEffect: english(raw.effect_entries)?.short_effect ?? null,
   };
 }
