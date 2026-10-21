@@ -1,6 +1,6 @@
 # Favorites and a random Species on load
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 ## Problem Statement
 
