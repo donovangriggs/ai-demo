@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import { readFavorites } from "@/lib/favorites-store";
 import { parseFilter, randomPick, visibleSpecies } from "@/lib/pokedex/filter";
 import { speciesHref } from "@/lib/pokedex/routes";
 import type { SpeciesSummary } from "@/lib/pokedex/types";
@@ -22,7 +23,9 @@ export function RandomSpeciesPick({ species }: { species: SpeciesSummary[] }) {
   useEffect(() => {
     if (!window.matchMedia(SPLIT_LAYOUT).matches) return;
     const filter = parseFilter(new URL(window.location.href).searchParams);
-    const pick = randomPick(visibleSpecies(species, filter));
+    // Read once rather than with `useFavorites`, whose hydration render sees no
+    // Favorites and would pick again when they arrive.
+    const pick = randomPick(visibleSpecies(species, filter, readFavorites()));
     // `replace`, so Back leaves the Pokédex instead of landing on `/` to pick again.
     if (pick) router.replace(speciesHref(pick.id, filter));
   }, [router, species]);

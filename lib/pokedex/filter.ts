@@ -1,3 +1,4 @@
+import type { PokedexNumber } from "./pokedex-number";
 import { matchesQuery } from "./search";
 import type { SpeciesSummary } from "./types";
 
@@ -15,12 +16,18 @@ export function parseFilter(params: Pick<URLSearchParams, "get">): PokedexFilter
   return { q: params.get("q") ?? "", favoritesOnly: params.get("fav") === "1" };
 }
 
-/** The Species the sidebar shows for a filter, in Pokédex order. */
+/**
+ * The Species the sidebar shows for a filter, in Pokédex order: those matching
+ * the search and, when Favorites only is on, that are Favorites.
+ */
 export function visibleSpecies<S extends Pick<SpeciesSummary, "id" | "slug" | "displayName">>(
   pokedex: readonly S[],
   filter: PokedexFilter,
+  favorites: ReadonlySet<PokedexNumber>,
 ): S[] {
-  return pokedex.filter((s) => matchesQuery(s, filter.q));
+  return pokedex.filter(
+    (s) => matchesQuery(s, filter.q) && (!filter.favoritesOnly || favorites.has(s.id)),
+  );
 }
 
 /** One Species picked at random from a list, or `null` when it's empty. */
