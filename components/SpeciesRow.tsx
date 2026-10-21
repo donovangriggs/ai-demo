@@ -2,6 +2,7 @@ import Image from "next/image";
 import { formatPokedexNumber } from "@/lib/pokedex/pokedex-number";
 import { spriteUrl } from "@/lib/pokedex/sprites";
 import type { SpeciesSummary } from "@/lib/pokedex/types";
+import { TypeBadge } from "./TypeBadge";
 
 export function SpeciesRow({ species }: { species: SpeciesSummary }) {
   return (
@@ -17,6 +18,11 @@ export function SpeciesRow({ species }: { species: SpeciesSummary }) {
         {formatPokedexNumber(species.id)}
       </span>
       <span className="flex-1 font-medium">{species.displayName}</span>
+      <span className="flex gap-1">
+        {species.types.map((type) => (
+          <TypeBadge key={type} type={type} />
+        ))}
+      </span>
     </div>
   );
 }

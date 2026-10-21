@@ -22,7 +22,7 @@ magikarp gyarados lapras ditto eevee vaporeon jolteon flareon porygon omanyte
 omastar kabuto kabutops aerodactyl snorlax articuno zapdos moltres dratini
 dragonair dragonite mewtwo mew`.split(/\s+/);
 
-const POKEDEX: SpeciesSummary[] = SLUGS.map((slug, i) => ({
+const POKEDEX: Pick<SpeciesSummary, "id" | "slug" | "displayName">[] = SLUGS.map((slug, i) => ({
   id: i + 1,
   slug,
   displayName: displayName(slug),
