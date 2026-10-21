@@ -2,6 +2,7 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import { Abilities } from "@/components/Abilities";
 import { BaseStats } from "@/components/BaseStats";
+import { FavoriteButton } from "@/components/FavoriteButton";
 import { TYPE_COLOURS, TypeBadge } from "@/components/TypeBadge";
 import { TypeMatchups } from "@/components/TypeMatchups";
 import { getSpecies, getTypeChart } from "@/lib/pokeapi";
@@ -54,6 +55,7 @@ export default async function SpeciesPage({ params }: PageProps<"/pokemon/[id]">
               ))}
             </div>
           </div>
+          <FavoriteButton pokedexNumber={pokedexNumber} name={species.displayName} />
         </header>
 
         <BaseStats baseStats={species.baseStats} type={primary} />

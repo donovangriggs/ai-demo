@@ -6,15 +6,17 @@ Spec: [spec.md](../spec.md), user stories 1–9 and 22–23; "Favorites codec", 
 
 **Blocked by:** None (can start immediately).
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] A pure Favorites codec has `parseFavorites(raw)`, `serializeFavorites(set)` and `toggleFavorite(set, n)`, as the spec describes. Parsing never throws, drops invalid or out-of-range entries and duplicates, and keeps the valid ones. Serialising sorts ascending.
-- [ ] Codec tests cover: `null`, `""`, invalid JSON, `{}` and `"6"` giving an empty set; `[6, 25]` round-tripping; duplicates collapsing; `0`, `152`, `-1`, `6.5`, `"6"` and `null` entries dropped while valid ones stay; and toggle not mutating its input.
-- [ ] A client Favorites store reads through `useSyncExternalStore`. Its server snapshot is empty, and its client snapshot stays stable for the same stored value. It notifies on changes in this tab and on the `storage` event. All localStorage access is wrapped in try/catch, and a failed write still updates the in-memory value.
-- [ ] Favorites are stored under the localStorage key `pokedex:favorites`.
-- [ ] The detail header has a `<button>` with `aria-pressed` and an accessible name naming the Species (e.g. "Favorite Charizard"). The two states look clearly different. The detail page stays prerendered, and only the button is a client component.
-- [ ] Sidebar rows for Favorites show a filled star, hidden from assistive tech. Rows stay single links.
+- [x] A pure Favorites codec has `parseFavorites(raw)`, `serializeFavorites(set)` and `toggleFavorite(set, n)`, as the spec describes. Parsing never throws, drops invalid or out-of-range entries and duplicates, and keeps the valid ones. Serialising sorts ascending.
+- [x] Codec tests cover: `null`, `""`, invalid JSON, `{}` and `"6"` giving an empty set; `[6, 25]` round-tripping; duplicates collapsing; `0`, `152`, `-1`, `6.5`, `"6"` and `null` entries dropped while valid ones stay; and toggle not mutating its input.
+- [x] A client Favorites store reads through `useSyncExternalStore`. Its server snapshot is empty, and its client snapshot stays stable for the same stored value. It notifies on changes in this tab and on the `storage` event. All localStorage access is wrapped in try/catch, and a failed write still updates the in-memory value.
+- [x] Favorites are stored under the localStorage key `pokedex:favorites`.
+- [x] The detail header has a `<button>` with `aria-pressed` and an accessible name naming the Species (e.g. "Favorite Charizard"). The two states look clearly different. The detail page stays prerendered, and only the button is a client component.
+- [x] Sidebar rows for Favorites show a filled star, hidden from assistive tech. Rows stay single links.
 - [ ] Manual check: star #6, reload, and it is still starred. A second open tab updates without a reload. With storage blocked, nothing crashes.
-- [ ] `npm test`, lint, the type check and `npm run build` all pass.
+- [x] `npm test`, lint, the type check and `npm run build` all pass.
 
 ## Comments
+
+Manual checks not run: the browser tool could not reach the local dev server. Star #6 and reload, the second-tab update and blocked storage still need a check by hand.

@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { useFavorites } from "@/lib/favorites-store";
 import { formatPokedexNumber } from "@/lib/pokedex/pokedex-number";
 import { spriteUrl } from "@/lib/pokedex/sprites";
 import type { SpeciesSummary } from "@/lib/pokedex/types";
@@ -12,6 +13,8 @@ export function SpeciesRow({
   /** Whether this Species' detail page is open. */
   selected?: boolean;
 }) {
+  // Rendered only inside the client sidebar, so it can read the store.
+  const favorite = useFavorites().has(species.id);
   return (
     <div
       className={`flex items-center gap-2 border-l-4 px-3 py-1 ${
@@ -29,6 +32,12 @@ export function SpeciesRow({
         {formatPokedexNumber(species.id)}
       </span>
       <span className="min-w-0 flex-1 truncate font-medium">{species.displayName}</span>
+      {/* A marker only: the detail page's button carries the meaning. */}
+      {favorite && (
+        <span aria-hidden className="shrink-0 text-amber-500">
+          ★
+        </span>
+      )}
       <span className="flex shrink-0 gap-1">
         {species.types.map((type) => (
           <TypeBadge key={type} type={type} />
